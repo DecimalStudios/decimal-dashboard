@@ -1,0 +1,2065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Timeline Dashboard</title>
+<style>
+  @font-face {
+    font-family: 'NEXTPan';
+    src: url('https://decimalstudios.com/_next/static/media/NEXT_Pan_Book_Light-s.p.44e8a15e.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'NEXTPan';
+    src: url('https://decimalstudios.com/_next/static/media/NEXT_Pan_Book_Regular-s.p.871dbc03.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  :root {
+    --bg: #f3f4f6;
+    --s1: #ffffff;
+    --s2: #f8f9fb;
+    --s3: #e4e7ec;
+    --border: #d1d5db;
+    --text: #111827;
+    --muted: #6b7280;
+    --accent: #0073ea;
+    --accent-dim: rgba(0,115,234,0.08);
+    --today: #dc2626;
+    --green: #16a34a;
+    --purple: #7c3aed;
+    --amber: #d97706;
+    --hdr: 52px;
+    --row: 36px;
+    --scale: 44px;
+    --left: 400px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'NEXTPan', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ────────────────────────────────────────────────── */
+  .app-header {
+    height: var(--hdr);
+    min-height: var(--hdr);
+    background: var(--s1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px 0 16px;
+    gap: 8px;
+    z-index: 200;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .sep { color: var(--border); font-size: 20px; line-height: 1; }
+
+  .project-count {
+    font-size: 12px;
+    color: var(--muted);
+    margin-right: auto;
+    white-space: nowrap;
+  }
+
+  .zoom-bar {
+    display: flex;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .zoom-btn {
+    padding: 5px 13px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .zoom-btn:hover { color: var(--text); }
+  .zoom-btn.active { color: var(--accent); background: var(--accent-dim); }
+
+  .hdr-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--s2);
+    color: var(--muted);
+    transition: all 0.12s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .hdr-btn:hover { color: var(--text); border-color: var(--accent); }
+  .hdr-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .hdr-btn.primary:hover { background: #0062c4; }
+  .hdr-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  /* ── BODY ──────────────────────────────────────────────────── */
+  .app-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── SETTINGS PANEL ────────────────────────────────────────── */
+  .settings-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .settings-overlay.open { opacity: 1; pointer-events: all; }
+
+  .settings-panel {
+    position: absolute;
+    top: 0; right: 0;
+    width: 390px;
+    height: 100%;
+    background: var(--s1);
+    border-left: 1px solid var(--border);
+    z-index: 160;
+    transform: translateX(100%);
+    transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .settings-panel.open { transform: translateX(0); }
+
+  .sp-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .sp-head h2 { font-size: 14px; font-weight: 600; }
+
+  .close-btn {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px;
+    background: none; border: none;
+    color: var(--muted);
+    cursor: pointer; font-size: 18px; line-height: 1;
+  }
+  .close-btn:hover { background: var(--s2); color: var(--text); }
+
+  .sp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .sp-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--muted); }
+
+  .input {
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 11px;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input:focus { border-color: var(--accent); }
+
+  .hint { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .hint a { color: var(--accent); text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+
+  .btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #0062c4; }
+  .btn-ghost { background: var(--s1); color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 500;
+  }
+  .status-pill.ok { background: rgba(22,163,74,0.1); color: var(--green); }
+  .status-pill.err { background: rgba(220,38,38,0.1); color: var(--today); }
+  .status-pill.loading { background: var(--s3); color: var(--muted); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .sp-divider { border: none; border-top: 1px solid var(--border); }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,115,234,0.05);
+    color: var(--accent);
+  }
+  .drop-zone .dz-icon { font-size: 24px; margin-bottom: 6px; }
+  .drop-zone .dz-text { font-weight: 500; }
+  .drop-zone .dz-hint { font-size: 11px; margin-top: 3px; opacity: 0.7; }
+  #file-input { display: none; }
+
+  .loaded-list { display: flex; flex-direction: column; gap: 6px; }
+  .loaded-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; background: var(--s2); border-radius: 6px; font-size: 12px;
+  }
+  .loaded-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .loaded-item-remove { color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 4px; }
+  .loaded-item-remove:hover { color: var(--today); }
+
+  /* ── GANTT AREA ────────────────────────────────────────────── */
+  .gantt-scroll {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--s3) transparent;
+  }
+
+  .gantt-inner {
+    min-height: 100%;
+    position: relative;
+  }
+
+  /* ── SCALE ROW ─────────────────────────────────────────────── */
+  .scale-row {
+    height: var(--scale);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    background: #eef2f7;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .scale-name-cell {
+    width: var(--left);
+    min-width: var(--left);
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    z-index: 102;
+    background: #eef2f7;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+  }
+  .scale-name-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  .scale-timeline {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scale-month {
+    position: absolute; top: 0; height: 100%;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    pointer-events: none; overflow: hidden;
+  }
+  .scale-month-label { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
+  .scale-month-year { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+  .scale-week {
+    position: absolute; top: 0; height: 100%;
+    border-right: 1px solid var(--border);
+    display: flex; align-items: flex-end;
+    padding: 0 4px 5px; pointer-events: none; opacity: 0.5;
+  }
+  .scale-week-label { font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+  /* ── TODAY LINE ────────────────────────────────────────────── */
+  .today-line {
+    position: absolute; top: 0; bottom: 0;
+    width: 1.5px; background: var(--today);
+    z-index: 15; pointer-events: none;
+  }
+  .today-label {
+    position: absolute; top: 4px;
+    transform: translateX(-50%);
+    font-size: 10px; font-weight: 600; color: var(--today);
+    background: var(--s1); padding: 2px 5px;
+    border-radius: 3px; border: 1px solid var(--today);
+    white-space: nowrap; pointer-events: none; z-index: 103;
+  }
+
+  /* ── PROJECT ROWS ──────────────────────────────────────────── */
+  .project-row {
+    display: flex;
+    height: var(--row);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    transition: background 0.1s;
+  }
+  .project-row:hover { background: #f0f6ff; }
+  .project-row.expanded { background: #edf4ff; }
+
+  .row-name-cell {
+    width: var(--left);
+    min-width: var(--left);
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: var(--s1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .project-row:hover .row-name-cell { background: #f0f6ff; }
+  .project-row.expanded .row-name-cell { background: #edf4ff; }
+  .row-name-cell:hover { background: #e8f0fe !important; }
+
+  .expand-icon {
+    width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); flex-shrink: 0;
+    font-size: 9px;
+    transition: transform 0.15s;
+  }
+  .expand-icon.open { transform: rotate(90deg); }
+
+  .source-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%; flex-shrink: 0;
+  }
+
+  .health-dots {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+  .health-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: default;
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .health-dot:hover { transform: scale(1.5); }
+  .health-dot.green  { background: #16a34a; }
+  .health-dot.red    { background: #dc2626; }
+  .health-dot.amber  { background: #d97706; }
+  .health-dot.grey   { background: #d1d5db; }
+
+  /* dot tooltip */
+  .health-dot::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.85);
+    background: #1f2937;
+    color: #d1d5db;
+    font-size: 8px;
+    font-weight: 300;
+    font-family: inherit;
+    white-space: nowrap;
+    padding: 3px 7px;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s, transform 0.12s;
+    z-index: 9999;
+  }
+  .health-dot:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  .row-name {
+    flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-weight: 500; font-size: 13px;
+  }
+  .row-meta { font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+  .row-timeline { flex: 1; position: relative; overflow: hidden; }
+
+  /* ── BARS ──────────────────────────────────────────────────── */
+  .bar-bg {
+    position: absolute;
+    height: 18px; top: 50%; transform: translateY(-50%);
+    border-radius: 4px; overflow: hidden;
+    cursor: pointer; transition: filter 0.1s; min-width: 4px;
+  }
+  .bar-bg:hover { filter: brightness(1.25); }
+
+  .bar-fill { height: 100%; border-radius: 4px 0 0 4px; }
+
+  /* ── TASK ROWS ─────────────────────────────────────────────── */
+  .task-row {
+    display: flex;
+    height: var(--row);
+    border-bottom: 1px solid #e9ecef;
+    background: #fafbfd;
+    position: relative;
+  }
+
+  .task-name-cell {
+    width: var(--left); min-width: var(--left);
+    flex-shrink: 0;
+    position: sticky; left: 0; z-index: 5;
+    background: #f6f8fb;
+    border-right: 1px solid #e9ecef;
+    display: flex; align-items: center;
+    padding: 0 10px 0 28px; gap: 6px;
+  }
+  .task-name {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 12px; color: var(--muted);
+  }
+  .task-timeline { flex: 1; position: relative; }
+
+  .task-bar {
+    position: absolute;
+    height: 10px; top: 50%; transform: translateY(-50%);
+    border-radius: 2px; overflow: hidden; min-width: 3px;
+  }
+  .task-bar-fill { height: 100%; }
+
+  /* ── NOTES ROW ──────────────────────────────────────────────── */
+  .notes-row {
+    display: flex;
+    border-bottom: 1px solid #e9ecef;
+    background: #fafbfd;
+  }
+  .notes-cell {
+    width: var(--left); min-width: var(--left);
+    flex-shrink: 0;
+    position: sticky; left: 0; z-index: 5;
+    background: #f6f8fb;
+    border-right: 1px solid #e9ecef;
+    padding: 7px 12px 7px 28px;
+  }
+  .notes-text {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .notes-label {
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .notes-timeline { flex: 1; background: #fafbfd; border-bottom: 0; }
+
+  .milestone-diamond {
+    position: absolute;
+    width: 10px; height: 10px;
+    top: 50%; transform: translateY(-50%) translateX(-5px) rotate(45deg);
+    border-radius: 2px;
+  }
+
+  /* ── LOADING / SKELETON ────────────────────────────────────── */
+  .loading-row {
+    display: flex; height: var(--row);
+    border-bottom: 1px solid #e9ecef;
+    background: #fafbfd;
+    align-items: center; padding: 0 0 0 28px;
+  }
+  .skeleton {
+    height: 10px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--s2) 0%, var(--s3) 50%, var(--s2) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── EMPTY STATE ───────────────────────────────────────────── */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px; color: var(--muted); padding: 40px; text-align: center;
+    min-height: calc(100vh - 80px);
+  }
+  .empty-icon { font-size: 52px; opacity: 0.35; }
+  .empty-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .empty-desc { font-size: 13px; max-width: 340px; line-height: 1.7; }
+
+  /* ── STATUS BAR ────────────────────────────────────────────── */
+  /* ── STATS STRIP ───────────────────────────────────────────── */
+  .stats-strip {
+    display: flex;
+    align-items: stretch;
+    background: var(--s1);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 0 20px;
+    height: 58px;
+    min-height: 58px;
+    z-index: 10;
+  }
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 20px;
+    border-right: 1px solid var(--border);
+    min-width: 72px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+  .stat-item:first-child { padding-left: 4px; }
+  .stat-item:hover { background: #f3f4f6; }
+  .stat-item.filter-active { background: #e9eaec; }
+  .stat-item.stat-divider {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 20px;
+  }
+  .stat-num {
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--text);
+    transition: color 0.2s;
+  }
+  .stat-num.is-red    { color: #dc2626; }
+  .stat-num.is-amber  { color: #d97706; }
+  .stat-num.is-muted  { color: #9ca3af; }
+  .stat-num.is-accent { color: var(--accent); }
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.4px;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  .status-bar {
+    height: 26px; min-height: 26px;
+    background: var(--s1); border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 12px; gap: 14px;
+    font-size: 11px; color: var(--muted);
+    flex-shrink: 0;
+  }
+  .sb-spacer { margin-left: auto; }
+
+  /* ── TOOLTIP ───────────────────────────────────────────────── */
+  .tooltip {
+    position: fixed; z-index: 999;
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px; pointer-events: none;
+    opacity: 0; transition: opacity 0.1s;
+    max-width: 260px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    color: #e2e8f0;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tt-title { font-weight: 600; margin-bottom: 6px; font-size: 13px; color: #f8fafc; }
+  .tt-row { display: flex; justify-content: space-between; gap: 20px; color: #94a3b8; margin-top: 3px; }
+  .tt-row span:last-child { color: #e2e8f0; }
+
+  /* ── TAGS ──────────────────────────────────────────────────── */
+  .tag {
+    display: inline-flex; align-items: center;
+    padding: 2px 6px; border-radius: 100px;
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .tag-ss { background: rgba(0,115,234,0.1); color: #0073ea; }
+  .tag-op { background: rgba(124,58,237,0.1); color: var(--purple); }
+
+  /* ── MISC ──────────────────────────────────────────────────── */
+  .spinner {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 4px; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+
+  .cors-warning {
+    background: rgba(217,119,6,0.08);
+    border: 1px solid rgba(217,119,6,0.25);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--amber);
+    line-height: 1.6;
+    display: none;
+  }
+  .cors-warning.show { display: block; }
+  .progress-bar-outer {
+    height: 3px; background: var(--s2);
+    border-radius: 2px; overflow: hidden; margin-top: 8px;
+  }
+  .progress-bar-inner {
+    height: 100%; background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">Decimal.</div>
+  <div style="flex:1"></div>
+
+  <div class="zoom-bar">
+    <button class="zoom-btn" data-zoom="year">Year</button>
+    <button class="zoom-btn active" data-zoom="quarter">Quarter</button>
+    <button class="zoom-btn" data-zoom="month">Month</button>
+  </div>
+
+  <button class="hdr-btn" id="btn-collapse-all" title="Collapse all projects">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 16l-8-8-8 8"/></svg>
+    Collapse
+  </button>
+
+  <button class="hdr-btn" id="btn-expand-all" title="Expand all to show tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8l8 8 8-8"/></svg>
+    Expand
+  </button>
+
+  <button class="hdr-btn" id="btn-today">Today</button>
+
+  <button class="hdr-btn" id="btn-refresh" title="Refresh Smartsheet data">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    Refresh
+  </button>
+
+  <button class="hdr-btn primary" id="btn-settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Connect
+  </button>
+</header>
+
+<!-- STATS STRIP -->
+<div class="stats-strip" id="stats-strip">
+  <div class="stat-item" data-filter="all">
+    <div class="stat-num" id="stat-total">—</div>
+    <div class="stat-lbl">Projects</div>
+  </div>
+  <div class="stat-item" data-filter="active">
+    <div class="stat-num" id="stat-active">—</div>
+    <div class="stat-lbl">Active</div>
+  </div>
+  <div class="stat-item" data-filter="paused">
+    <div class="stat-num is-muted" id="stat-paused">—</div>
+    <div class="stat-lbl">On Pause</div>
+  </div>
+  <div class="stat-item" data-filter="delivery">
+    <div class="stat-num" id="stat-delivery">—</div>
+    <div class="stat-lbl">Delivery Risk</div>
+  </div>
+  <div class="stat-item" data-filter="overburn">
+    <div class="stat-num" id="stat-overburn">—</div>
+    <div class="stat-lbl">Overburn</div>
+  </div>
+  <div class="stat-item" data-filter="client">
+    <div class="stat-num" id="stat-client">—</div>
+    <div class="stat-lbl">Client Flags</div>
+  </div>
+  <div class="stat-item" data-filter="team">
+    <div class="stat-num" id="stat-team">—</div>
+    <div class="stat-lbl">Team Flags</div>
+  </div>
+  <div class="stat-item" data-filter="launches">
+    <div class="stat-num" id="stat-launches">—</div>
+    <div class="stat-lbl">Launches</div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- Settings overlay -->
+  <div class="settings-overlay" id="settings-overlay"></div>
+
+  <!-- Settings panel -->
+  <div class="settings-panel" id="settings-panel">
+    <div class="sp-head">
+      <h2>⚙ Connect &amp; Settings</h2>
+      <button class="close-btn" id="btn-close-settings">✕</button>
+    </div>
+    <div class="sp-body">
+
+      <!-- Smartsheet -->
+      <div>
+        <div class="sp-section-title">Smartsheet</div>
+        <div id="cors-warning" class="cors-warning" style="display:none"></div>
+        <div style="margin-top: 10px;">
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-connect">Load All Sheets</button>
+            <button class="btn btn-ghost" id="btn-load-workspaces">By Workspace</button>
+            <button class="btn btn-ghost" id="btn-test">Test</button>
+            <div id="ss-status"></div>
+          </div>
+          <div id="workspace-picker" style="display:none; margin-top:12px;">
+            <div class="hint" style="margin-bottom:8px;">Select workspaces to load — sheets inside Archive folders are automatically excluded.</div>
+            <div id="workspace-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+            <div style="margin-top:10px;">
+              <button class="btn btn-primary" id="btn-load-selected-ws">Load Selected</button>
+            </div>
+          </div>
+          <div id="load-progress" style="display:none; margin-top: 10px;">
+            <div class="hint" id="load-progress-text">Loading sheets…</div>
+            <div class="progress-bar-outer">
+              <div class="progress-bar-inner" id="load-progress-bar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sp-divider" />
+
+      <!-- OmniPlan -->
+      <div>
+        <div class="sp-section-title">OmniPlan Files</div>
+        <p class="hint" style="margin-bottom: 10px;">Export from OmniPlan via File → Export → CSV or XML, then import here.</p>
+        <div class="drop-zone" id="drop-zone">
+          <div class="dz-icon">📥</div>
+          <div class="dz-text">Drop files here or click to browse</div>
+          <div class="dz-hint">Supports .csv and .xml exports</div>
+        </div>
+        <input type="file" id="file-input" accept=".csv,.xml,.tsv" multiple />
+        <div class="loaded-list" id="loaded-list" style="margin-top: 8px;"></div>
+      </div>
+
+      <hr class="sp-divider" />
+
+      <!-- Options -->
+      <div>
+        <div class="sp-section-title">Display Options</div>
+        <div class="field">
+          <label>Timeline padding (months on each side)</label>
+          <input type="number" class="input" id="padding-months" value="1" min="0" max="6" style="font-family: inherit;" />
+        </div>
+      </div>
+
+      <hr class="sp-divider" />
+
+      <div>
+        <button class="btn btn-ghost" id="btn-clear-data"
+          style="color: var(--today); border-color: rgba(248,113,113,0.3); width: 100%;">
+          Disconnect &amp; Clear All Data
+        </button>
+        <p class="hint" style="margin-top: 6px;">Removes your API token and all project data from this browser.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Gantt scroll area -->
+  <div class="gantt-scroll" id="gantt-scroll">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">No timelines loaded yet</div>
+      <div class="empty-desc">Connect your Smartsheet account to pull in all your project timelines at once, or import OmniPlan CSV exports.</div>
+      <button class="btn btn-primary" id="btn-get-started" style="margin-top: 4px;">Get Started →</button>
+    </div>
+
+    <!-- Gantt content -->
+    <div class="gantt-inner" id="gantt-inner" style="display: none;"></div>
+
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <div id="sb-status">Ready</div>
+  <div id="sb-projects"></div>
+  <div id="sb-range"></div>
+  <div class="sb-spacer"></div>
+  <div id="sb-updated"></div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-row"><span>Start</span><span id="tt-start"></span></div>
+  <div class="tt-row"><span>End</span><span id="tt-end"></span></div>
+  <div class="tt-row"><span>Progress</span><span id="tt-progress"></span></div>
+  <div class="tt-row"><span>Duration</span><span id="tt-duration"></span></div>
+  <div class="tt-row" id="tt-tasks-row"><span>Tasks</span><span id="tt-tasks"></span></div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const PX_PER_DAY = { year: 2, quarter: 6, month: 22 };
+// Vercel serverless proxy (api/ss.js) — no CORS issues, token lives server-side
+const SS_API = '/api/ss';
+const LS_TOKEN      = 'tvd_ss_token_v2';
+const LS_WORKSPACES        = 'tvd_workspace_ids';
+const DEFAULT_WORKSPACE_ID = '870327845709700';  // Decimal Studios
+const HEALTH_CSV_URL = 'https://docs.google.com/spreadsheets/d/1zfqcjpJAkWksYg986O29TlBxMb5pYpdbsq8cUnWqB5g/gviz/tq?tqx=out:csv';
+
+const PROJECT_COLORS = [
+  '#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b',
+  '#ec4899','#f97316','#6366f1','#14b8a6','#a3e635',
+];
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const S = {
+  token: localStorage.getItem(LS_TOKEN) || '',
+  projects: [],
+  zoom: 'quarter',
+  tlStart: null,
+  tlEnd: null,
+  colorIdx: 0,
+  lastUpdated: null,
+  loadingCount: 0,
+  totalToLoad: 0,
+  healthData: {},  // keyed by normalised project name
+  activeFilter: null,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+const $  = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtDate  = d => d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const fmtShort = d => d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+const fmtMon   = d => d ? d.toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '—';
+const daysBetween = (a,b) => Math.round((b-a)/86400000);
+const addMonths = (d,n) => { const r=new Date(d); r.setMonth(r.getMonth()+n); return r; };
+
+function parseDate(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function parseProgress(val) {
+  if (val == null || val === '') return 0;
+  if (typeof val === 'number') return val > 1 ? val/100 : val;
+  const s = String(val).replace('%','').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.min(1, n > 1 ? n/100 : n);
+}
+
+function nextColor() {
+  return PROJECT_COLORS[S.colorIdx++ % PROJECT_COLORS.length];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HEALTH DATA (Google Sheets)
+// ═══════════════════════════════════════════════════════════════
+function normaliseKey(name) {
+  return String(name).trim().toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[\u2014\u2013]/g, '-');  // em/en dash → hyphen
+}
+
+function getHealthForProject(p) {
+  const key = normaliseKey(p.name);
+  if (S.healthData[key]) return S.healthData[key];
+  const found = Object.keys(S.healthData).find(k => k.includes(key) || key.includes(k));
+  return found ? S.healthData[found] : null;
+}
+
+function projectMatchesFilter(p, filter) {
+  if (!filter || filter === 'all') return true;
+  const h = getHealthForProject(p);
+  if (filter === 'paused') {
+    return h && String(h.status || '').toLowerCase().includes('pause');
+  }
+  if (filter === 'active') {
+    return !h || !String(h.status || '').toLowerCase().includes('pause');
+  }
+  if (filter === 'delivery') {
+    return h && String(h.deliveryRisk).toLowerCase() === 'yes';
+  }
+  if (filter === 'overburn') {
+    return h && String(h.overburnRisk).toLowerCase() === 'yes';
+  }
+  if (filter === 'client') {
+    const ch = h ? String(h.clientHealth).toLowerCase() : '';
+    return ch === 'flags' || ch === 'risk';
+  }
+  if (filter === 'team') {
+    const th = h ? String(h.teamHealth).toLowerCase() : '';
+    return th === 'flags' || th === 'risk';
+  }
+  if (filter === 'launches') {
+    const now = new Date();
+    const curY = now.getFullYear(), curM = now.getMonth();
+    return (p.tasks || []).some(t => {
+      if (!/launch/i.test(t.name)) return false;
+      const d = t.startDate || t.endDate;
+      return d && d.getFullYear() === curY && d.getMonth() === curM;
+    });
+  }
+  return true;
+}
+
+function parseSheetCSV(text) {
+  // Proper CSV parser: handles quoted fields, embedded newlines, escaped quotes
+  const rows = [];
+  let current = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQ && text[i+1] === '"') { field += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      current.push(field.trim()); field = '';
+    } else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      current.push(field.trim()); field = '';
+      if (current.some(c => c)) rows.push(current);
+      current = [];
+    } else {
+      field += ch;
+    }
+  }
+  if (field || current.length) { current.push(field.trim()); if (current.some(c=>c)) rows.push(current); }
+
+  const out = {};
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i];
+    if (!cols[0]) continue;
+    const key = normaliseKey(cols[0]);
+    out[key] = {
+      status:       cols[6]  || '',
+      deliveryRisk: cols[7]  || '',
+      overburnRisk: cols[8]  || '',
+      clientHealth: cols[9]  || '',
+      teamHealth:   cols[10] || '',
+      notes:        cols[11] || '',
+    };
+  }
+  return out;
+}
+
+async function loadHealthData() {
+  try {
+    const res = await fetch(HEALTH_CSV_URL + '&t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const text = await res.text();
+    S.healthData = parseSheetCSV(text);
+    render();
+  } catch(e) {
+    console.warn('Health data fetch failed:', e);
+  }
+}
+
+function dotColor(field, value) {
+  const v = String(value).trim().toLowerCase();
+  if (field === 'deliveryRisk' || field === 'overburnRisk') {
+    if (v === 'no')  return 'green';
+    if (v === 'yes') return 'red';
+    return 'grey';
+  }
+  // client/team health
+  if (v === 'aligned') return 'green';
+  if (v === 'flags')   return 'amber';
+  if (v === 'risk')    return 'red';
+  return 'grey';
+}
+
+function healthDots(projectName) {
+  // Try exact normalised key first, then partial match
+  const key = normaliseKey(projectName);
+  let h = S.healthData[key];
+  if (!h) {
+    // fuzzy: find first entry whose key contains ours or vice-versa
+    const found = Object.keys(S.healthData).find(k =>
+      k.includes(key) || key.includes(k)
+    );
+    if (found) h = S.healthData[found];
+  }
+  if (!h) return '';  // no data yet — render nothing
+
+  const labels = [
+    ['deliveryRisk',  'Delivery risk: '  + (h.deliveryRisk || '—')],
+    ['overburnRisk',  'Overburn risk: '  + (h.overburnRisk || '—')],
+    ['clientHealth',  'Client health: '  + (h.clientHealth || '—')],
+    ['teamHealth',    'Team health: '    + (h.teamHealth   || '—')],
+  ];
+  const dots = labels.map(([field, label]) =>
+    `<div class="health-dot ${dotColor(field, h[field])}" data-tip="${esc(label)}"></div>`
+  ).join('');
+  return `<div class="health-dots">${dots}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SMARTSHEET API
+// ═══════════════════════════════════════════════════════════════
+async function ssGet(path) {
+  const res = await fetch(`${SS_API}${path}`, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Detect start, end, progress columns from sheet columns array
+function detectCols(columns) {
+  const cols = { name: null, start: null, end: null, progress: null };
+  const primary = columns.find(c => c.primary);
+  if (primary) cols.name = primary.id;
+
+  for (const col of columns) {
+    const t = col.title.toLowerCase();
+    const isDate = ['DATE','DATETIME','ABSTRACT_DATETIME'].includes(col.type);
+    const isNum  = col.type === 'TEXT_NUMBER';
+
+    if (isDate) {
+      if (!cols.start && /\b(start|begin|kick.?off)\b/.test(t))       cols.start = col.id;
+      if (!cols.end   && /\b(end|finish|due|deadline|complet)\b/.test(t)) cols.end   = col.id;
+    }
+    if (!cols.progress && (col.type === 'PERCENT' || (isNum && /(%|progress|complete|done)/.test(t)))) {
+      cols.progress = col.id;
+    }
+  }
+
+  // Fallback: first two date columns if nothing matched by name
+  if (!cols.start || !cols.end) {
+    const dateCols = columns.filter(c => ['DATE','DATETIME','ABSTRACT_DATETIME'].includes(c.type));
+    if (!cols.start && dateCols[0]) cols.start = dateCols[0].id;
+    if (!cols.end   && dateCols[1]) cols.end   = dateCols[1].id;
+  }
+
+  return cols;
+}
+
+function extractTimeline(sheet) {
+  const cols  = detectCols(sheet.columns || []);
+  const tasks = [];
+  let minDate = null, maxDate = null;
+  let totalProg = 0, progCount = 0;
+
+  for (const row of (sheet.rows || [])) {
+    const cell = {};
+    for (const c of (row.cells || [])) cell[c.columnId] = c;
+
+    const name     = cols.name     ? (cell[cols.name]?.displayValue     || cell[cols.name]?.value     || '') : '';
+    const startVal = cols.start    ? (cell[cols.start]?.value)          : null;
+    const endVal   = cols.end      ? (cell[cols.end]?.value)            : null;
+    const progVal  = cols.progress ? (cell[cols.progress]?.value)       : null;
+
+    const startDate = parseDate(startVal);
+    const endDate   = parseDate(endVal);
+    const progress  = parseProgress(progVal);
+
+    if (startDate && (!minDate || startDate < minDate)) minDate = startDate;
+    if (endDate   && (!maxDate || endDate   > maxDate)) maxDate = endDate;
+    if (progress > 0) { totalProg += progress; progCount++; }
+
+    if (name || startDate) {
+      tasks.push({
+        id: String(row.id),
+        name: String(name || '(unnamed)'),
+        indent: row.indent || 0,
+        startDate,
+        endDate,
+        progress,
+        isMilestone: !!(startDate && endDate && daysBetween(startDate, endDate) === 0),
+      });
+    }
+  }
+
+  return {
+    tasks,
+    startDate: minDate,
+    endDate:   maxDate,
+    progress:  progCount > 0 ? totalProg / progCount : 0,
+    hasDates:  !!(cols.start || cols.end),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CSV PARSER
+// ═══════════════════════════════════════════════════════════════
+function parseCSVLine(line) {
+  const result = [];
+  let inQuote = false, cur = '';
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuote = !inQuote; }
+    else if ((ch === ',' || ch === '\t') && !inQuote) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function parseOmniCSV(text, filename) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+
+  const hdrs = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+
+  // Broad matching to handle OmniPlan, Smartsheet, MS Project, and generic CSV exports
+  const nameIdx  = hdrs.findIndex(h => /task.?name|^name$|^title$|^activity$|^work$|^task$/.test(h))
+                ?? hdrs.findIndex(h => /name|title|task/.test(h));
+  const startIdx = hdrs.findIndex(h => /scheduled.?start|start.?date|begin.?date|^start$|^begins$/.test(h))
+                ?? hdrs.findIndex(h => /start|begin/.test(h));
+  const endIdx   = hdrs.findIndex(h => /scheduled.?end|end.?date|finish.?date|due.?date|^end$|^finish$|^due$|^ends$/.test(h))
+                ?? hdrs.findIndex(h => /\bend\b|finish|due|deadline/.test(h));
+  const progIdx  = hdrs.findIndex(h => /%.?complete|percent.?complete|completion|^%$|^done$/.test(h))
+                ?? hdrs.findIndex(h => /%|progress|complete/.test(h));
+
+  console.log('CSV headers:', hdrs);
+  console.log('Detected cols → name:', nameIdx, 'start:', startIdx, 'end:', endIdx, 'progress:', progIdx);
+
+  const tasks = [];
+  let minDate = null, maxDate = null;
+
+  for (let i = 1; i < lines.length; i++) {
+    const cells = parseCSVLine(lines[i]);
+    const name      = nameIdx  >= 0 ? cells[nameIdx] : `Task ${i}`;
+    const startDate = startIdx >= 0 ? parseDate(cells[startIdx]) : null;
+    const endDate   = endIdx   >= 0 ? parseDate(cells[endIdx])   : null;
+    const progress  = progIdx  >= 0 ? parseProgress(cells[progIdx]) : 0;
+
+    if (startDate && (!minDate || startDate < minDate)) minDate = startDate;
+    if (endDate   && (!maxDate || endDate   > maxDate)) maxDate = endDate;
+
+    if (name) tasks.push({ id:`csv_${i}`, name, indent:0, startDate, endDate, progress, isMilestone: false });
+  }
+
+  return makeOmniProject(filename, tasks, minDate, maxDate);
+}
+
+function parseOmniXML(text, filename) {
+  try {
+    const doc = new DOMParser().parseFromString(text, 'text/xml');
+    const taskEls = doc.querySelectorAll('task');
+    const tasks = [];
+    let minDate = null, maxDate = null;
+
+    taskEls.forEach((el, i) => {
+      const name  = el.querySelector('title, name')?.textContent || `Task ${i+1}`;
+      const sStr  = el.querySelector('start')?.textContent || el.getAttribute('start') || '';
+      const eStr  = el.querySelector('end, finish, due')?.textContent || el.getAttribute('end') || '';
+      const pStr  = el.querySelector('completed, progress, percentDone')?.textContent || '0';
+      const startDate = parseDate(sStr);
+      const endDate   = parseDate(eStr);
+      const progress  = parseProgress(pStr);
+
+      if (startDate && (!minDate || startDate < minDate)) minDate = startDate;
+      if (endDate   && (!maxDate || endDate   > maxDate)) maxDate = endDate;
+      tasks.push({ id:`xml_${i}`, name, indent:0, startDate, endDate, progress, isMilestone: false });
+    });
+
+    return makeOmniProject(filename, tasks, minDate, maxDate);
+  } catch(e) { return null; }
+}
+
+function makeOmniProject(filename, tasks, startDate, endDate) {
+  const name = filename.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+  return {
+    id: `omni_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    name, source: 'omniplan', color: nextColor(),
+    startDate, endDate, progress: 0,
+    expanded: false, loaded: true, loading: false, tasks,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIMELINE MATH
+// ═══════════════════════════════════════════════════════════════
+function recalcBounds() {
+  const ps = S.projects.filter(p => p.startDate && p.endDate);
+  const pad = parseInt($('padding-months').value) || 1;
+
+  if (ps.length === 0) {
+    const now = new Date();
+    S.tlStart = addMonths(now, -3);
+    S.tlEnd   = addMonths(now, 9);
+    return;
+  }
+
+  let min = ps[0].startDate, max = ps[0].endDate;
+  for (const p of ps) {
+    if (p.startDate < min) min = p.startDate;
+    if (p.endDate   > max) max = p.endDate;
+  }
+
+  S.tlStart = addMonths(min, -pad);
+  S.tlEnd   = addMonths(max,  pad);
+}
+
+const dateToX = d => d && S.tlStart ? daysBetween(S.tlStart, d) * PX_PER_DAY[S.zoom] : 0;
+const tlWidth  = ()  => S.tlStart && S.tlEnd ? daysBetween(S.tlStart, S.tlEnd) * PX_PER_DAY[S.zoom] : 800;
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function render() {
+  const inner = $('gantt-inner');
+  const empty = $('empty-state');
+
+  updateStats();
+
+  if (S.projects.length === 0) {
+    inner.style.display = 'none';
+    empty.style.display = 'flex';
+    updateStatus();
+    return;
+  }
+
+  empty.style.display = 'none';
+  inner.style.display = 'block';
+  recalcBounds();
+
+  const tw = tlWidth();
+  inner.style.minWidth = (400 + tw) + 'px';
+
+  // Sort alphabetically, then apply active filter if set
+  let sorted = [...S.projects].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  if (S.activeFilter) sorted = sorted.filter(p => projectMatchesFilter(p, S.activeFilter));
+
+  let html = buildScale(tw);
+  for (const p of sorted) {
+    html += buildProjectRow(p, tw);
+    if (p.expanded) {
+      if (p.loading) {
+        html += buildLoadingRows(3);
+      } else {
+        html += buildNotesRow(p, tw);
+        for (const t of p.tasks) html += buildTaskRow(t, p.color, tw);
+        if (p.tasks.length === 0 && p.loaded) html += buildNoTasksRow();
+      }
+    }
+  }
+
+  inner.innerHTML = html;
+  injectTodayLines(tw);
+  bindEvents();
+  updateStatus();
+}
+
+function buildScale(tw) {
+  let tl = '';
+  const pxd = PX_PER_DAY[S.zoom];
+
+  // Week ticks (month zoom only)
+  if (S.zoom === 'month') {
+    const cur = new Date(S.tlStart);
+    cur.setDate(cur.getDate() - cur.getDay()); // align to week start
+    while (cur <= S.tlEnd) {
+      const x = dateToX(cur);
+      if (x >= 0 && x <= tw) {
+        tl += `<div class="scale-week" style="left:${x}px">
+          <span class="scale-week-label">${cur.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+        </div>`;
+      }
+      cur.setDate(cur.getDate() + 7);
+    }
+  }
+
+  // Month labels
+  const mc = new Date(S.tlStart);
+  mc.setDate(1);
+  while (mc <= S.tlEnd) {
+    const x = dateToX(mc);
+    const next = new Date(mc); next.setMonth(next.getMonth() + 1);
+    const w = dateToX(next) - x;
+    const label = mc.toLocaleString('en-US', { month: S.zoom === 'year' ? 'short' : 'long' });
+    const showYear = mc.getMonth() === 0;
+    tl += `<div class="scale-month" style="left:${x}px;width:${w}px">
+      <span class="scale-month-label">${label}</span>
+      ${showYear ? `<span class="scale-month-year">${mc.getFullYear()}</span>` : ''}
+    </div>`;
+    mc.setMonth(mc.getMonth() + 1);
+  }
+
+  return `<div class="scale-row">
+    <div class="scale-name-cell"><span class="scale-name-label">Project / Task</span></div>
+    <div class="scale-timeline" style="width:${tw}px" id="scale-tl">${tl}</div>
+  </div>`;
+}
+
+function buildProjectRow(p, tw) {
+  const src   = p.source === 'omniplan' ? '<span class="tag tag-op">OP</span>' : '<span class="tag tag-ss">SS</span>';
+  const arrow = `<span class="expand-icon ${p.expanded ? 'open' : ''}">▶</span>`;
+  const pct   = '';
+
+  let bar = '';
+  if (p.startDate && p.endDate) {
+    const x  = Math.max(0, dateToX(p.startDate));
+    const ex = Math.min(tw, dateToX(p.endDate));
+    const w  = Math.max(4, ex - x);
+    const fw = Math.round(p.progress * 100);
+    bar = `<div class="bar-bg" data-tip="${esc(p.id)}"
+      style="left:${x}px;width:${w}px;background:${p.color}20;border:1.5px solid ${p.color}60">
+      <div class="bar-fill" style="width:${fw}%;background:${p.color}cc"></div>
+    </div>`;
+  } else if (!p.loaded) {
+    bar = `<div style="position:absolute;top:50%;transform:translateY(-50%);left:8px;right:8px;height:6px;border-radius:3px;" class="skeleton"></div>`;
+  }
+
+  return `<div class="project-row ${p.expanded ? 'expanded' : ''}">
+    <div class="row-name-cell" data-toggle="${esc(p.id)}">
+      ${arrow}
+      <div class="source-dot" style="background:${p.color}"></div>
+      ${src}
+      <span class="row-name" title="${esc(p.name)}">${esc(p.name)}</span>
+      ${pct}
+      ${healthDots(p.name)}
+    </div>
+    <div class="row-timeline" style="width:${tw}px">${bar}</div>
+  </div>`;
+}
+
+function buildTaskRow(t, color, tw) {
+  const indent = (t.indent || 0) * 14 + 28;
+  let bar = '';
+
+  if (t.isMilestone && t.startDate) {
+    const x = dateToX(t.startDate);
+    bar = `<div class="milestone-diamond" style="left:${x}px;background:${color}"></div>`;
+  } else if (t.startDate && t.endDate) {
+    const x  = Math.max(0, dateToX(t.startDate));
+    const ex = Math.min(tw, dateToX(t.endDate));
+    const w  = Math.max(3, ex - x);
+    const fw = Math.round(t.progress * 100);
+    bar = `<div class="task-bar" style="left:${x}px;width:${w}px;background:${color}40">
+      <div class="task-bar-fill" style="width:${fw}%;background:${color}99"></div>
+    </div>`;
+  }
+
+  return `<div class="task-row">
+    <div class="task-name-cell" style="padding-left:${indent}px">
+      <span class="task-name" title="${esc(t.name)}">${esc(t.name)}</span>
+    </div>
+    <div class="task-timeline" style="width:${tw}px">${bar}</div>
+  </div>`;
+}
+
+function buildLoadingRows(n) {
+  return Array.from({length: n}, (_,i) =>
+    `<div class="loading-row"><div class="skeleton" style="width:${40+i*15}%;max-width:200px"></div></div>`
+  ).join('');
+}
+
+function buildNoTasksRow() {
+  return `<div class="task-row">
+    <div class="task-name-cell" style="padding-left:28px">
+      <span class="task-name" style="font-style:italic;opacity:0.6">No tasks with date columns found</span>
+    </div>
+    <div class="task-timeline"></div>
+  </div>`;
+}
+
+function buildNotesRow(p, tw) {
+  // Look up notes from health data
+  const key = normaliseKey(p.name);
+  let h = S.healthData[key];
+  if (!h) {
+    const found = Object.keys(S.healthData).find(k => k.includes(key) || key.includes(k));
+    if (found) h = S.healthData[found];
+  }
+  const notes = h && h.notes ? h.notes.trim() : '';
+  if (!notes) return '';
+
+  return `<div class="notes-row">
+    <div class="notes-cell">
+      <div class="notes-label">Notes</div>
+      <div class="notes-text">${esc(notes)}</div>
+    </div>
+    <div class="notes-timeline" style="width:${tw}px"></div>
+  </div>`;
+}
+
+function injectTodayLines(tw) {
+  const today = new Date();
+  const x = dateToX(today);
+  if (x < 0 || x > tw) return;
+
+  // Today line in each timeline section
+  document.querySelectorAll('.row-timeline, .task-timeline').forEach(el => {
+    const line = document.createElement('div');
+    line.className = 'today-line';
+    line.style.left = x + 'px';
+    el.appendChild(line);
+  });
+
+  // Label in scale
+  const scaleTl = $('scale-tl');
+  if (scaleTl) {
+    const line  = document.createElement('div');
+    line.className = 'today-line';
+    line.style.left = x + 'px';
+    scaleTl.appendChild(line);
+
+    const label = document.createElement('div');
+    label.className = 'today-label';
+    label.style.left = x + 'px';
+    label.textContent = 'Today';
+    scaleTl.appendChild(label);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT BINDING
+// ═══════════════════════════════════════════════════════════════
+function bindEvents() {
+  // Expand / collapse
+  document.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = S.projects.find(x => String(x.id) === el.dataset.toggle);
+      if (!p) return;
+      p.expanded = !p.expanded;
+      if (p.expanded && !p.loaded && !p.loading && p.source === 'smartsheet') {
+        loadDetail(p);
+      } else {
+        render();
+      }
+    });
+  });
+
+  // Bar tooltips
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip));
+    el.addEventListener('mousemove',  moveTooltip);
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOOLTIP
+// ═══════════════════════════════════════════════════════════════
+function showTip(e, pid) {
+  const p = S.projects.find(x => String(x.id) === pid);
+  if (!p) return;
+  $('tt-title').textContent    = p.name;
+  $('tt-start').textContent    = fmtDate(p.startDate);
+  $('tt-end').textContent      = fmtDate(p.endDate);
+  $('tt-progress').textContent = `${Math.round(p.progress * 100)}%`;
+  $('tt-duration').textContent = p.startDate && p.endDate ? `${daysBetween(p.startDate, p.endDate)} days` : '—';
+  $('tt-tasks').textContent    = `${p.tasks.length}`;
+  $('tt-tasks-row').style.display = p.loaded ? 'flex' : 'none';
+  $('tooltip').classList.add('visible');
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  const tt = $('tooltip');
+  tt.style.left = Math.min(e.clientX + 16, window.innerWidth  - 270) + 'px';
+  tt.style.top  = Math.min(e.clientY + 16, window.innerHeight - 160) + 'px';
+}
+function hideTip() { $('tooltip').classList.remove('visible'); }
+
+// ═══════════════════════════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════════════════════════
+function updateStats() {
+  const ps = S.projects;
+  const hd = S.healthData;
+
+  const total   = ps.length;
+  const paused  = Object.values(hd).filter(h => String(h.status||'').toLowerCase().includes('pause')).length;
+  const active  = total - paused;
+
+  let delivery = 0, overburn = 0, client = 0, team = 0;
+  Object.values(hd).forEach(h => {
+    if (String(h.deliveryRisk).toLowerCase() === 'yes') delivery++;
+    if (String(h.overburnRisk).toLowerCase() === 'yes') overburn++;
+    const ch = String(h.clientHealth).toLowerCase();
+    if (ch === 'flags' || ch === 'risk') client++;
+    const th = String(h.teamHealth).toLowerCase();
+    if (th === 'flags' || th === 'risk') team++;
+  });
+
+  // Launches this month: any task named "launch" with a date in the current calendar month
+  const now = new Date();
+  const curY = now.getFullYear(), curM = now.getMonth();
+  let launches = 0;
+  for (const p of ps) {
+    for (const t of (p.tasks || [])) {
+      if (!/launch/i.test(t.name)) continue;
+      const d = t.startDate || t.endDate;
+      if (d && d.getFullYear() === curY && d.getMonth() === curM) launches++;
+    }
+  }
+
+  const set = (id, val, cls) => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = total > 0 ? val : '—';
+    el.className = 'stat-num' + (total > 0 && val > 0 && cls ? ' ' + cls : total > 0 && val === 0 && cls ? ' is-muted' : '');
+  };
+
+  set('stat-total',    total,    '');
+  set('stat-active',   active,   '');
+  set('stat-paused',   paused,   'is-muted');
+  set('stat-delivery', delivery, delivery > 0 ? 'is-red'   : '');
+  set('stat-overburn', overburn, overburn > 0 ? 'is-red'   : '');
+  set('stat-client',   client,   client   > 0 ? 'is-amber' : '');
+  set('stat-team',     team,     team     > 0 ? 'is-amber' : '');
+  set('stat-launches', launches, launches > 0 ? 'is-accent' : '');
+}
+
+function setStatus(type, msg) {
+  const el = $('sb-status');
+  const icons = { loading:`<span class="spinner"></span>`, ok:`<span style="color:var(--green)">✓</span>`, err:`<span style="color:var(--today)">✕</span>` };
+  el.innerHTML = type && icons[type] ? `${icons[type]} ${msg}` : msg;
+}
+
+function updateStatus() {
+  const ps = S.projects;
+  if (!ps.length) { $('sb-projects').textContent=''; $('sb-range').textContent=''; return; }
+
+  const ss = ps.filter(p=>p.source==='smartsheet').length;
+  const op = ps.filter(p=>p.source==='omniplan').length;
+  const parts = [];
+  if (ss) parts.push(`${ss} Smartsheet`);
+  if (op) parts.push(`${op} OmniPlan`);
+  $('sb-projects').textContent = parts.join(' · ');
+
+  if (S.tlStart && S.tlEnd)
+    $('sb-range').textContent = `${fmtMon(S.tlStart)} → ${fmtMon(S.tlEnd)}`;
+
+  if (S.lastUpdated)
+    $('sb-updated').textContent = `Refreshed ${S.lastUpdated.toLocaleTimeString()}`;
+
+  const n = ps.length;
+  // project count now shown in stats strip
+}
+
+function ssStatus(type, msg) {
+  const map = { ok:'ok', err:'err', loading:'loading' };
+  const dot = type ? `<span class="status-dot"></span>` : '';
+  $('ss-status').innerHTML = type
+    ? `<span class="status-pill ${map[type]}">${dot}${msg}</span>`
+    : msg;
+}
+
+function setLoadProgress(done, total) {
+  const el = $('load-progress');
+  if (total === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  $('load-progress-text').textContent = `Loading sheet details… ${done} / ${total}`;
+  $('load-progress-bar').style.width = `${Math.round(done/total*100)}%`;
+  if (done >= total) setTimeout(()=>{ el.style.display='none'; }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOADING
+// ═══════════════════════════════════════════════════════════════
+async function loadDetail(project) {
+  if (project.loading || project.loaded) return;
+  project.loading = true;
+  if (project.expanded) render();
+
+  try {
+    const sheet = await ssGet(`/sheets/${project.id}`);
+    applySheetData(project, sheet);
+  } catch(e) {
+    project.loading = false;
+    project.loaded  = true;
+    project.tasks   = [];
+    setStatus('err', `Failed: ${project.name} — ${e.message}`);
+  }
+  render();
+}
+
+function applySheetData(project, sheet) {
+  const { tasks, startDate, endDate, progress } = extractTimeline(sheet);
+  project.tasks     = tasks;
+  project.startDate = project.startDate || startDate;
+  project.endDate   = project.endDate   || endDate;
+  project.progress  = progress;
+  project.loaded    = true;
+  project.loading   = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORKSPACE LOADING
+// ═══════════════════════════════════════════════════════════════
+async function showWorkspacePicker() {
+
+  ssStatus('loading', 'Loading workspaces…');
+  try {
+    const data = await ssGet('/workspaces');
+    const workspaces = data.data || [];
+    const list = $('workspace-list');
+    list.innerHTML = workspaces.map(ws => `
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--s2);border-radius:5px;">
+        <input type="checkbox" data-wsid="${ws.id}" style="accent-color:var(--accent);" checked />
+        ${esc(ws.name)}
+      </label>
+    `).join('');
+    $('workspace-picker').style.display = 'block';
+    ssStatus('ok', `${workspaces.length} workspaces found`);
+  } catch(e) {
+    ssStatus('err', e.message);
+  }
+}
+
+async function autoLoadSavedWorkspaces() {
+  // Use saved workspace IDs if present, otherwise fall back to Decimal Studios default
+  const saved = localStorage.getItem(LS_WORKSPACES);
+  const ids = saved ? JSON.parse(saved) : [DEFAULT_WORKSPACE_ID];
+  if (!ids.length) return;
+
+  setStatus('loading', 'Loading projects…');
+  S.projects = S.projects.filter(p => p.source !== 'smartsheet');
+  S.colorIdx  = S.projects.length;
+
+  let totalSheets = 0;
+  for (const wsid of ids) {
+    try {
+      const ws = await ssGet(`/workspaces/${wsid}`);
+      for (const sheet of (ws.sheets || [])) {
+        S.projects.push({
+          id: sheet.id, name: sheet.name,
+          source: 'smartsheet', color: nextColor(),
+          startDate: null, endDate: null, progress: 0,
+          expanded: false, loaded: false, loading: false, tasks: [],
+          permalink: sheet.permalink,
+        });
+        totalSheets++;
+      }
+    } catch(e) { /* skip */ }
+  }
+
+  S.lastUpdated = new Date();
+  setStatus('ok', `Loaded ${totalSheets} projects`);
+  render();
+  scrollToToday();
+  backgroundLoad(totalSheets);
+}
+
+async function loadSelectedWorkspaces() {
+  const checked = [...document.querySelectorAll('#workspace-list input:checked')];
+  if (!checked.length) { ssStatus('err', 'Select at least one workspace'); return; }
+
+  // Remember the selection for auto-load on next visit
+  localStorage.setItem(LS_WORKSPACES, JSON.stringify(checked.map(cb => cb.dataset.wsid)));
+
+  $('workspace-picker').style.display = 'none';
+  ssStatus('loading', 'Loading workspace sheets…');
+  closeSettings();
+
+  S.projects = S.projects.filter(p => p.source !== 'smartsheet');
+  S.colorIdx = S.projects.length;
+
+  let totalSheets = 0;
+  for (const cb of checked) {
+    try {
+      const ws = await ssGet(`/workspaces/${cb.dataset.wsid}`);
+      // Only top-level sheets — skip anything inside subfolders (Archive, etc.)
+      for (const sheet of (ws.sheets || [])) {
+        S.projects.push({
+          id: sheet.id, name: sheet.name,
+          source: 'smartsheet', color: nextColor(),
+          startDate: null, endDate: null, progress: 0,
+          expanded: false, loaded: false, loading: false, tasks: [],
+          permalink: sheet.permalink,
+        });
+        totalSheets++;
+      }
+    } catch(e) { /* skip failed workspace */ }
+  }
+
+  S.lastUpdated = new Date();
+  ssStatus('ok', `${totalSheets} current sheets loaded`);
+  setStatus('ok', `Loaded ${totalSheets} current projects`);
+  render();
+  scrollToToday();
+  backgroundLoad(totalSheets);
+}
+
+async function connectSmartsheet() {
+
+  ssStatus('loading', 'Connecting…');
+  setStatus('loading', 'Connecting to Smartsheet…');
+  closeSettings();
+
+  try {
+    const data = await ssGet('/sheets?pageSize=300&includeAll=true');
+    const sheets = data.data || [];
+
+    // Remove old Smartsheet projects, keep OmniPlan
+    S.projects   = S.projects.filter(p => p.source !== 'smartsheet');
+    S.colorIdx   = S.projects.length;
+
+    for (const sheet of sheets) {
+      S.projects.push({
+        id: sheet.id, name: sheet.name,
+        source: 'smartsheet', color: nextColor(),
+        startDate: null, endDate: null, progress: 0,
+        expanded: false, loaded: false, loading: false, tasks: [],
+        permalink: sheet.permalink,
+      });
+    }
+
+    S.lastUpdated = new Date();
+    ssStatus('ok', `${sheets.length} sheets loaded`);
+    setStatus('ok', `Loaded ${sheets.length} Smartsheet projects`);
+    render();
+    scrollToToday();
+    backgroundLoad(sheets.length);
+
+  } catch(e) {
+    const isNetwork = e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
+    ssStatus('err', isNetwork ? 'Network error — see hint below' : e.message);
+    setStatus('err', e.message);
+    if (isNetwork) $('cors-warning').classList.add('show');
+    openSettings();
+  }
+}
+
+async function backgroundLoad(total) {
+  const unloaded = () => S.projects.filter(p => p.source==='smartsheet' && !p.loaded && !p.loading);
+  const CONCURRENCY = 5;
+  let done = 0;
+
+  setLoadProgress(0, total);
+
+  async function worker() {
+    while (true) {
+      const next = unloaded()[0];
+      if (!next) break;
+      next.loading = true;
+      try {
+        const sheet = await ssGet(`/sheets/${next.id}`);
+        applySheetData(next, sheet);
+        recalcBounds();
+        render();
+      } catch(e) {
+        next.loading = false;
+        next.loaded  = true;
+      }
+      done++;
+      setLoadProgress(done, total);
+    }
+  }
+
+  await Promise.all(Array.from({length: CONCURRENCY}, worker));
+  S.lastUpdated = new Date();
+  setStatus('ok', `All ${total} projects loaded`);
+  updateStatus();
+  scrollToToday();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OMNIPLAN FILE HANDLING
+// ═══════════════════════════════════════════════════════════════
+function handleFiles(files) {
+  for (const file of files) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const ext  = file.name.split('.').pop().toLowerCase();
+      let project = null;
+
+      if (ext === 'csv' || ext === 'tsv') project = parseOmniCSV(text, file.name);
+      else if (ext === 'xml')             project = parseOmniXML(text, file.name);
+
+      if (project) {
+        S.projects = S.projects.filter(p => !(p.source==='omniplan' && p.name===project.name));
+        S.projects.push(project);
+        saveOmniProjects();
+        updateLoadedList();
+        render();
+        setStatus('ok', `Imported "${project.name}" (${project.tasks.length} tasks)`);
+      } else {
+        setStatus('err', `Could not parse ${file.name} — try CSV export`);
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+function updateLoadedList() {
+  const ops = S.projects.filter(p => p.source === 'omniplan');
+  const container = $('loaded-list');
+  container.innerHTML = ops.map(p => `
+    <div class="loaded-item">
+      <div class="source-dot" style="background:${p.color}"></div>
+      <div class="loaded-item-name" title="${esc(p.name)}">${esc(p.name)}</div>
+      <div class="loaded-item-remove" data-remove="${esc(p.id)}">✕</div>
+    </div>
+  `).join('');
+  container.querySelectorAll('[data-remove]').forEach(el => {
+    el.addEventListener('click', () => {
+      S.projects = S.projects.filter(p => p.id !== el.dataset.remove);
+      saveOmniProjects();
+      updateLoadedList();
+      render();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OMNIPLAN PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+const LS_OMNI = 'tvd_omni_projects_v1';
+
+function saveOmniProjects() {
+  const ops = S.projects.filter(p => p.source === 'omniplan');
+  // Store dates as ISO strings so they survive JSON serialisation
+  const serialised = ops.map(p => ({
+    ...p,
+    startDate: p.startDate ? p.startDate.toISOString() : null,
+    endDate:   p.endDate   ? p.endDate.toISOString()   : null,
+    tasks: p.tasks.map(t => ({
+      ...t,
+      startDate: t.startDate ? t.startDate.toISOString() : null,
+      endDate:   t.endDate   ? t.endDate.toISOString()   : null,
+    }))
+  }));
+  localStorage.setItem(LS_OMNI, JSON.stringify(serialised));
+}
+
+function loadOmniProjects() {
+  try {
+    const raw = localStorage.getItem(LS_OMNI);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    for (const p of parsed) {
+      p.startDate = p.startDate ? new Date(p.startDate) : null;
+      p.endDate   = p.endDate   ? new Date(p.endDate)   : null;
+      p.tasks = (p.tasks || []).map(t => ({
+        ...t,
+        startDate: t.startDate ? new Date(t.startDate) : null,
+        endDate:   t.endDate   ? new Date(t.endDate)   : null,
+      }));
+      S.projects.push(p);
+    }
+    if (parsed.length) {
+      S.colorIdx = Math.max(S.colorIdx, parsed.length);
+      updateLoadedList();
+    }
+  } catch(e) {
+    console.warn('Could not restore OmniPlan projects:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ZOOM + NAV
+// ═══════════════════════════════════════════════════════════════
+function setZoom(z) {
+  S.zoom = z;
+  document.querySelectorAll('.zoom-btn').forEach(b => b.classList.toggle('active', b.dataset.zoom === z));
+  render();
+}
+
+function scrollToToday() {
+  const scroll = $('gantt-scroll');
+  const x = dateToX(new Date());
+  // 400 = left name column width; position today ~40% from left of visible area
+  scroll.scrollLeft = Math.max(0, 400 + x - scroll.clientWidth * 0.4);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS PANEL
+// ═══════════════════════════════════════════════════════════════
+function openSettings() {
+  $('settings-panel').classList.add('open');
+  $('settings-overlay').classList.add('open');
+  $('btn-settings').classList.add('active');
+}
+function closeSettings() {
+  $('settings-panel').classList.remove('open');
+  $('settings-overlay').classList.remove('open');
+  $('btn-settings').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+function init() {
+  // Load health data from Google Sheet in background
+  loadHealthData();
+
+  // Header buttons
+  $('btn-settings').addEventListener('click', openSettings);
+  $('btn-close-settings').addEventListener('click', closeSettings);
+  $('settings-overlay').addEventListener('click', closeSettings);
+  $('btn-connect').addEventListener('click', connectSmartsheet);
+  $('btn-load-workspaces').addEventListener('click', showWorkspacePicker);
+  $('btn-load-selected-ws').addEventListener('click', loadSelectedWorkspaces);
+  $('btn-refresh').addEventListener('click', () => autoLoadSavedWorkspaces());
+  $('btn-today').addEventListener('click', scrollToToday);
+  $('btn-get-started').addEventListener('click', openSettings);
+
+  // Stats strip filter clicks
+  document.querySelectorAll('.stat-item[data-filter]').forEach(el => {
+    el.addEventListener('click', () => {
+      const f = el.dataset.filter;
+      // Toggle off if already active, otherwise switch to this filter (all = clear)
+      if (S.activeFilter === f || f === 'all') {
+        S.activeFilter = null;
+      } else {
+        S.activeFilter = f;
+      }
+      // Update active class
+      document.querySelectorAll('.stat-item[data-filter]').forEach(e => {
+        e.classList.toggle('filter-active', e.dataset.filter === S.activeFilter);
+      });
+      render();
+    });
+  });
+
+  $('btn-test').addEventListener('click', async () => {
+    ssStatus('loading','Testing…');
+    try {
+      const r = await fetch(`${SS_API}/users/me`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const u = await r.json();
+      ssStatus('ok', `Connected as ${u.firstName || u.email || 'user'}`);
+    } catch(e) {
+      ssStatus('err', e.message.includes('fetch') ? 'Network error' : e.message);
+    }
+  });
+
+  $('btn-expand-all').addEventListener('click', () => {
+    S.projects.forEach(p => { p.expanded = true; });
+    render();
+    S.projects.forEach(p => { if (p.source==='smartsheet' && !p.loaded) loadDetail(p); });
+  });
+
+  $('btn-collapse-all').addEventListener('click', () => {
+    S.projects.forEach(p => p.expanded = false);
+    render();
+  });
+
+  $('btn-clear-data').addEventListener('click', () => {
+    if (!confirm('Disconnect and clear all project data?')) return;
+    S.projects = []; S.colorIdx = 0;
+    $('ss-status').innerHTML = '';
+    $('load-progress').style.display = 'none';
+    updateLoadedList();
+    render();
+    setStatus('', 'Cleared');
+  });
+
+  // Zoom
+  document.querySelectorAll('.zoom-btn').forEach(b => b.addEventListener('click', () => setZoom(b.dataset.zoom)));
+
+  // File import
+  const dz = $('drop-zone');
+  const fi = $('file-input');
+  dz.addEventListener('click', () => fi.click());
+  fi.addEventListener('change', e => { handleFiles(e.target.files); fi.value = ''; });
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',      e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+  // Keyboard
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
+
+  // Restore saved OmniPlan files + initial render
+  loadOmniProjects();
+  setStatus('', 'Ready — click Connect to load your Smartsheet projects');
+  render();
+
+  // Auto-connect if token is already stored — always use default workspace
+  setTimeout(autoLoadSavedWorkspaces, 200);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/ss/:path*", "destination": "/api/ss" }
+    { "source": "/api/ss/:path*", "destination": "/api/ss" },
+    { "source": "/projects", "destination": "/index.html" },
+    { "source": "/proposals", "destination": "/index.html" }
   ]
 }

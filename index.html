@@ -104,6 +104,29 @@
   .zoom-btn:hover { color: var(--text); }
   .zoom-btn.active { color: var(--accent); background: var(--accent-dim); }
 
+  .view-toggle {
+    display: flex;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 4px;
+  }
+  .view-btn {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.12s;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .view-btn:hover { color: var(--text); }
+  .view-btn.active { color: var(--accent); background: var(--accent-dim); }
+
   .hdr-btn {
     display: flex;
     align-items: center;
@@ -539,6 +562,76 @@
     border-radius: 2px;
   }
 
+  /* ── PROPOSALS ─────────────────────────────────────────────── */
+  .proposal-row {
+    display: flex;
+    height: var(--row);
+    border-bottom: 1px solid #e9ecef;
+    background: white;
+    align-items: center;
+  }
+  .proposal-row:hover { background: #f8fafc; }
+  .prop-name-cell {
+    width: 400px;
+    min-width: 400px;
+    padding: 0 16px 0 28px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-right: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+  .prop-timeline {
+    position: relative;
+    height: 100%;
+  }
+  .diamond-due {
+    position: absolute;
+    width: 12px; height: 12px;
+    top: 50%; transform: translateY(-50%) translateX(-6px) rotate(45deg);
+    background: #ef4444;
+    border-radius: 2px;
+  }
+  .diamond-checkin {
+    position: absolute;
+    width: 9px; height: 9px;
+    top: 50%; transform: translateY(-50%) translateX(-4px) rotate(45deg);
+    background: transparent;
+    border: 2px solid #3b82f6;
+    border-radius: 1px;
+    box-sizing: border-box;
+  }
+  .diamond-due, .diamond-checkin { cursor: default; }
+  .diamond-due::after, .diamond-checkin::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 9px);
+    left: 50%;
+    transform: translateX(-50%) rotate(-45deg) scale(0.85);
+    background: #1f2937;
+    color: #d1d5db;
+    font-size: 8px;
+    font-weight: 300;
+    font-family: inherit;
+    white-space: nowrap;
+    padding: 3px 7px;
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s, transform 0.12s;
+    z-index: 9999;
+  }
+  .diamond-due:hover::after, .diamond-checkin:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) rotate(-45deg) scale(1);
+  }
+
   /* ── LOADING / SKELETON ────────────────────────────────────── */
   .loading-row {
     display: flex; height: var(--row);
@@ -698,6 +791,11 @@
   <div class="logo">Decimal.</div>
   <div style="flex:1"></div>
 
+  <div class="view-toggle">
+    <button class="view-btn active" data-view="projects">Projects</button>
+    <button class="view-btn" data-view="proposals">Proposals</button>
+  </div>
+
   <div class="zoom-bar">
     <button class="zoom-btn" data-zoom="year">Year</button>
     <button class="zoom-btn active" data-zoom="quarter">Quarter</button>
@@ -760,6 +858,26 @@
   <div class="stat-item" data-filter="launches">
     <div class="stat-num" id="stat-launches">—</div>
     <div class="stat-lbl">Launches</div>
+  </div>
+</div>
+
+<!-- PROPOSALS STATS STRIP -->
+<div class="stats-strip" id="stats-strip-proposals" style="display:none">
+  <div class="stat-item" data-filter-p="all">
+    <div class="stat-num" id="pstat-total">—</div>
+    <div class="stat-lbl">Proposals</div>
+  </div>
+  <div class="stat-item" data-filter-p="overdue">
+    <div class="stat-num" id="pstat-overdue">—</div>
+    <div class="stat-lbl">Overdue</div>
+  </div>
+  <div class="stat-item" data-filter-p="due-week">
+    <div class="stat-num" id="pstat-due-week">—</div>
+    <div class="stat-lbl">Due This Week</div>
+  </div>
+  <div class="stat-item" data-filter-p="checkin-week">
+    <div class="stat-num" id="pstat-checkin-week">—</div>
+    <div class="stat-lbl">Check-ins This Week</div>
   </div>
 </div>
 
@@ -891,7 +1009,8 @@ const SS_API = '/api/ss';
 const LS_TOKEN      = 'tvd_ss_token_v2';
 const LS_WORKSPACES        = 'tvd_workspace_ids';
 const DEFAULT_WORKSPACE_ID = '870327845709700';  // Decimal Studios
-const HEALTH_CSV_URL = 'https://docs.google.com/spreadsheets/d/1zfqcjpJAkWksYg986O29TlBxMb5pYpdbsq8cUnWqB5g/gviz/tq?tqx=out:csv';
+const HEALTH_CSV_URL    = 'https://docs.google.com/spreadsheets/d/1zfqcjpJAkWksYg986O29TlBxMb5pYpdbsq8cUnWqB5g/gviz/tq?tqx=out:csv';
+const PROPOSALS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1yUcd-gfhK05Ay7G3Xk_RnAPNnwTpSq6MCU4y-ojYZVU/export?format=csv';
 
 const PROJECT_COLORS = [
   '#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b',
@@ -904,6 +1023,8 @@ const PROJECT_COLORS = [
 const S = {
   token: localStorage.getItem(LS_TOKEN) || '',
   projects: [],
+  proposals: [],
+  view: window.location.pathname.includes('proposals') ? 'proposals' : 'projects',
   zoom: 'quarter',
   tlStart: null,
   tlEnd: null,
@@ -1302,6 +1423,8 @@ const tlWidth  = ()  => S.tlStart && S.tlEnd ? daysBetween(S.tlStart, S.tlEnd) *
 // RENDER
 // ═══════════════════════════════════════════════════════════════
 function render() {
+  if (S.view === 'proposals') { renderProposals(); return; }
+
   const inner = $('gantt-inner');
   const empty = $('empty-state');
 
@@ -1387,7 +1510,7 @@ function buildScale(tw) {
 }
 
 function buildProjectRow(p, tw) {
-  const src   = p.source === 'omniplan' ? '<span class="tag tag-op">OP</span>' : '<span class="tag tag-ss">SS</span>';
+  const src   = p.source === 'omniplan' ? '<span class="tag tag-op">OP</span>' : '';
   const arrow = `<span class="expand-icon ${p.expanded ? 'open' : ''}">▶</span>`;
   const pct   = '';
 
@@ -1977,7 +2100,176 @@ function closeSettings() {
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// PROPOSALS VIEW
+// ═══════════════════════════════════════════════════════════════
+
+function initView() {
+  const v = S.view;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  $('stats-strip').style.display              = v === 'projects'  ? '' : 'none';
+  $('stats-strip-proposals').style.display    = v === 'proposals' ? '' : 'none';
+  ['btn-collapse-all','btn-expand-all'].forEach(id => { const el=$(id); if(el) el.style.display = v==='projects' ? '' : 'none'; });
+}
+
+function switchView(v) {
+  if (S.view === v) return;
+  S.view = v;
+  history.pushState({}, '', '/' + v);
+  initView();
+  if (v === 'proposals') {
+    if (S.proposals.length === 0) fetchProposals();
+    else renderProposals();
+  } else {
+    render();
+  }
+}
+
+async function fetchProposals() {
+  try {
+    const r = await fetch(PROPOSALS_CSV_URL);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = await r.text();
+    S.proposals = parseProposalsCSV(text);
+  } catch(e) {
+    console.error('Failed to load proposals:', e);
+    S.proposals = [];
+  }
+  renderProposals();
+}
+
+function parseProposalsCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const proposals = [];
+  for (let i = 1; i < lines.length; i++) {
+    // Simple CSV split (handles basic quoting)
+    const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    if (!cols[0]) continue;
+    const client = cols[0];
+    const dueDate = parseDate(cols[1]);
+    const checkIns = [];
+    for (let j = 2; j < cols.length; j++) {
+      const d = parseDate(cols[j]);
+      if (d) checkIns.push(d);
+    }
+    proposals.push({ client, dueDate, checkIns });
+  }
+  proposals.sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate - b.dueDate;
+  });
+  return proposals;
+}
+
+function recalcProposalBounds() {
+  let min = null, max = null;
+  for (const p of S.proposals) {
+    const dates = [p.dueDate, ...p.checkIns].filter(Boolean);
+    for (const d of dates) {
+      if (!min || d < min) min = d;
+      if (!max || d > max) max = d;
+    }
+  }
+  if (!min) { min = new Date(); max = addMonths(new Date(), 1); }
+  S.tlStart = new Date(min.getTime() - 14 * 86400000);
+  S.tlEnd   = new Date(max.getTime() + 14 * 86400000);
+}
+
+function renderProposals() {
+  const inner = $('gantt-inner');
+  const empty = $('empty-state');
+
+  updateProposalStats();
+
+  if (S.proposals.length === 0) {
+    inner.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+
+  empty.style.display = 'none';
+  inner.style.display = 'block';
+  recalcProposalBounds();
+
+  const tw = tlWidth();
+  inner.style.minWidth = (400 + tw) + 'px';
+
+  let html = buildScale(tw);
+  for (const prop of S.proposals) html += buildProposalRow(prop, tw);
+
+  inner.innerHTML = html;
+  injectTodayLines(tw);
+}
+
+function buildProposalRow(prop, tw) {
+  let diamonds = '';
+  if (prop.dueDate) {
+    const x = dateToX(prop.dueDate);
+    if (x >= -12 && x <= tw + 12)
+      diamonds += `<div class="diamond-due" style="left:${x}px" data-tip="Due: ${fmtShort(prop.dueDate)}"></div>`;
+  }
+  for (const d of prop.checkIns) {
+    const x = dateToX(d);
+    if (x >= -9 && x <= tw + 9)
+      diamonds += `<div class="diamond-checkin" style="left:${x}px" data-tip="Check-in: ${fmtShort(d)}"></div>`;
+  }
+  return `<div class="proposal-row">
+    <div class="prop-name-cell">
+      <span title="${esc(prop.client)}">${esc(prop.client)}</span>
+    </div>
+    <div class="prop-timeline" style="width:${tw}px">${diamonds}</div>
+  </div>`;
+}
+
+function updateProposalStats() {
+  const ps = S.proposals;
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setHours(0,0,0,0);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+  const total         = ps.length;
+  const overdue       = ps.filter(p => p.dueDate && p.dueDate < now).length;
+  const dueThisWeek   = ps.filter(p => p.dueDate && p.dueDate >= now && p.dueDate < endOfWeek).length;
+  const checkinsThisWeek = ps.reduce((acc, p) => acc + p.checkIns.filter(d => d >= startOfWeek && d < endOfWeek).length, 0);
+
+  const setP = (id, val, cls) => {
+    const el = $(id); if (!el) return;
+    el.textContent = total > 0 ? val : '—';
+    el.className = 'stat-num' + (total > 0 && val > 0 && cls ? ' ' + cls : '');
+  };
+  setP('pstat-total',        total,            '');
+  setP('pstat-overdue',      overdue,          overdue > 0 ? 'is-red' : '');
+  setP('pstat-due-week',     dueThisWeek,      dueThisWeek > 0 ? 'is-amber' : '');
+  setP('pstat-checkin-week', checkinsThisWeek, '');
+}
+
 function init() {
+  // Set up view based on URL
+  initView();
+
+  // View toggle buttons
+  document.querySelectorAll('.view-btn').forEach(b => {
+    b.addEventListener('click', () => switchView(b.dataset.view));
+  });
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', () => {
+    S.view = window.location.pathname.includes('proposals') ? 'proposals' : 'projects';
+    initView();
+    if (S.view === 'proposals') {
+      if (S.proposals.length === 0) fetchProposals();
+      else renderProposals();
+    } else {
+      render();
+    }
+  });
+
   // Load health data from Google Sheet in background
   loadHealthData();
 
@@ -2060,11 +2352,15 @@ function init() {
 
   // Restore saved OmniPlan files + initial render
   loadOmniProjects();
-  setStatus('', 'Ready — click Connect to load your Smartsheet projects');
-  render();
 
-  // Auto-connect if token is already stored — always use default workspace
-  setTimeout(autoLoadSavedWorkspaces, 200);
+  if (S.view === 'proposals') {
+    fetchProposals();
+  } else {
+    setStatus('', 'Ready — click Connect to load your Smartsheet projects');
+    render();
+    // Auto-connect if token is already stored — always use default workspace
+    setTimeout(autoLoadSavedWorkspaces, 200);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

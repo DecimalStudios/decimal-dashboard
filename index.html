@@ -600,12 +600,10 @@
   }
   .diamond-checkin {
     position: absolute;
-    width: 9px; height: 9px;
-    top: 50%; transform: translateY(-50%) translateX(-4px) rotate(45deg);
-    background: transparent;
-    border: 2px solid #3b82f6;
-    border-radius: 1px;
-    box-sizing: border-box;
+    width: 10px; height: 10px;
+    top: 50%; transform: translateY(-50%) translateX(-5px) rotate(45deg);
+    background: #3b82f6;
+    border-radius: 2px;
   }
   .diamond-due, .diamond-checkin { cursor: default; }
   .diamond-due::after, .diamond-checkin::after {
@@ -798,8 +796,9 @@
 
   <div class="zoom-bar">
     <button class="zoom-btn" data-zoom="year">Year</button>
-    <button class="zoom-btn active" data-zoom="quarter">Quarter</button>
-    <button class="zoom-btn" data-zoom="month">Month</button>
+    <button class="zoom-btn" data-zoom="quarter">Quarter</button>
+    <button class="zoom-btn active" data-zoom="month">Month</button>
+    <button class="zoom-btn" data-zoom="week">Week</button>
   </div>
 
   <button class="hdr-btn" id="btn-collapse-all" title="Collapse all projects">
@@ -1003,7 +1002,7 @@
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════
-const PX_PER_DAY = { year: 2, quarter: 6, month: 22 };
+const PX_PER_DAY = { year: 2, quarter: 6, month: 22, week: 60 };
 // Vercel serverless proxy (api/ss.js) — no CORS issues, token lives server-side
 const SS_API = '/api/ss';
 const LS_TOKEN      = 'tvd_ss_token_v2';
@@ -1025,7 +1024,7 @@ const S = {
   projects: [],
   proposals: [],
   view: window.location.pathname.includes('proposals') ? 'proposals' : 'projects',
-  zoom: 'quarter',
+  zoom: 'month',
   tlStart: null,
   tlEnd: null,
   colorIdx: 0,
@@ -1472,7 +1471,7 @@ function buildScale(tw) {
   let tl = '';
   const pxd = PX_PER_DAY[S.zoom];
 
-  // Week ticks (month zoom only)
+  // Week ticks (month zoom) or day ticks (week zoom)
   if (S.zoom === 'month') {
     const cur = new Date(S.tlStart);
     cur.setDate(cur.getDate() - cur.getDay()); // align to week start
@@ -1485,6 +1484,19 @@ function buildScale(tw) {
       }
       cur.setDate(cur.getDate() + 7);
     }
+  } else if (S.zoom === 'week') {
+    const cur = new Date(S.tlStart);
+    const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    while (cur <= S.tlEnd) {
+      const x = dateToX(cur);
+      if (x >= 0 && x <= tw) {
+        const isWeekend = cur.getDay() === 0 || cur.getDay() === 6;
+        tl += `<div class="scale-week" style="left:${x}px;${isWeekend ? 'opacity:0.35' : ''}">
+          <span class="scale-week-label">${days[cur.getDay()]} ${cur.getDate()}</span>
+        </div>`;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
   }
 
   // Month labels
@@ -1494,9 +1506,12 @@ function buildScale(tw) {
     const x = dateToX(mc);
     const next = new Date(mc); next.setMonth(next.getMonth() + 1);
     const w = dateToX(next) - x;
-    const label = mc.toLocaleString('en-US', { month: S.zoom === 'year' ? 'short' : 'long' });
+    // Clamp to visible area so label doesn't appear right-aligned on partial months
+    const visX = Math.max(0, x);
+    const visW = Math.max(0, w - (visX - x));
+    const label = mc.toLocaleString('en-US', { month: S.zoom === 'year' || S.zoom === 'week' ? 'short' : 'long' });
     const showYear = mc.getMonth() === 0;
-    tl += `<div class="scale-month" style="left:${x}px;width:${w}px">
+    tl += `<div class="scale-month" style="left:${visX}px;width:${visW}px">
       <span class="scale-month-label">${label}</span>
       ${showYear ? `<span class="scale-month-year">${mc.getFullYear()}</span>` : ''}
     </div>`;

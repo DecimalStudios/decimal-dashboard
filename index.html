@@ -1552,8 +1552,9 @@ function buildScale(tw) {
     mc.setMonth(mc.getMonth() + 1);
   }
 
+  const scaleLabel = S.view === 'proposals' ? 'Client' : 'Project / Task';
   return `<div class="scale-row">
-    <div class="scale-name-cell"><span class="scale-name-label">Project / Task</span></div>
+    <div class="scale-name-cell"><span class="scale-name-label">${scaleLabel}</span></div>
     <div class="scale-timeline" style="width:${tw}px" id="scale-tl">${tl}</div>
   </div>`;
 }
@@ -2240,7 +2241,7 @@ function recalcProposalBounds() {
   }
   if (!min) { min = new Date(); max = addMonths(new Date(), 1); }
   S.tlStart = new Date(min.getTime() - 30 * 86400000);
-  S.tlEnd   = new Date(max.getTime() + 60 * 86400000);
+  S.tlEnd   = addMonths(new Date(), 12);
 }
 
 function renderProposals() {

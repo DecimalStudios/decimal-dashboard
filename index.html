@@ -636,6 +636,18 @@
     border-radius: 2px;
   }
   .diamond-due, .diamond-checkin { cursor: default; }
+  .diamond-label {
+    position: absolute;
+    top: 50%;
+    transform: translateX(-50%) translateY(-18px);
+    font-size: 9px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    line-height: 1;
+  }
+  .diamond-label-due    { color: #ef4444; }
+  .diamond-label-checkin { color: #3b82f6; }
   .diamond-due::after, .diamond-checkin::after {
     content: attr(data-tip);
     position: absolute;
@@ -2275,13 +2287,19 @@ function buildProposalRow(prop, tw) {
   let diamonds = '';
   if (prop.dueDate) {
     const x = dateToX(prop.dueDate);
-    if (x >= -12 && x <= tw + 12)
-      diamonds += `<div class="diamond-due" style="left:${x}px" data-tip="Due: ${fmtShort(prop.dueDate)}"></div>`;
+    if (x >= -12 && x <= tw + 12) {
+      const label = fmtShort(prop.dueDate);
+      diamonds += `<div class="diamond-due" style="left:${x}px" data-tip="Due: ${label}"></div>`;
+      diamonds += `<span class="diamond-label diamond-label-due" style="left:${x}px">${label}</span>`;
+    }
   }
   for (const d of prop.checkIns) {
     const x = dateToX(d);
-    if (x >= -9 && x <= tw + 9)
-      diamonds += `<div class="diamond-checkin" style="left:${x}px" data-tip="Check-in: ${fmtShort(d)}"></div>`;
+    if (x >= -9 && x <= tw + 9) {
+      const label = fmtShort(d);
+      diamonds += `<div class="diamond-checkin" style="left:${x}px" data-tip="Check-in: ${label}"></div>`;
+      diamonds += `<span class="diamond-label diamond-label-checkin" style="left:${x}px">${label}</span>`;
+    }
   }
   return `<div class="proposal-row">
     <div class="prop-name-cell">

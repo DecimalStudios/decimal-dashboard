@@ -2155,6 +2155,7 @@ function initView() {
   $('stats-strip').style.display              = v === 'projects'  ? '' : 'none';
   $('stats-strip-proposals').style.display    = v === 'proposals' ? '' : 'none';
   ['btn-collapse-all','btn-expand-all'].forEach(id => { const el=$(id); if(el) el.style.display = v==='projects' ? '' : 'none'; });
+  document.title = v === 'proposals' ? 'Proposals — Decimal' : 'Projects — Decimal';
 }
 
 function switchView(v) {

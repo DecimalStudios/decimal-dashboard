@@ -1135,6 +1135,9 @@ function extractTimeline(sheet) {
   let minDate = null, maxDate = null;
   let totalProg = 0, progCount = 0;
 
+  // Build set of row IDs that are parents (have children) — used to show only phase-level rows
+  const parentIdSet = new Set((sheet.rows || []).map(r => r.parentId).filter(Boolean));
+
   for (const row of (sheet.rows || [])) {
     const cell = {};
     for (const c of (row.cells || [])) cell[c.columnId] = c;
@@ -1148,11 +1151,16 @@ function extractTimeline(sheet) {
     const endDate   = parseDate(endVal);
     const progress  = parseProgress(progVal);
 
+    // Always track min/max dates from all rows for the project bar
     if (startDate && (!minDate || startDate < minDate)) minDate = startDate;
     if (endDate   && (!maxDate || endDate   > maxDate)) maxDate = endDate;
     if (progress > 0) { totalProg += progress; progCount++; }
 
-    if (name || startDate) {
+    // Only include phase-level rows: must have a parent (not the top project row)
+    // and must have children of their own (is a grouping row, not a leaf task)
+    const isPhase = row.parentId && parentIdSet.has(row.id);
+
+    if (isPhase && (name || startDate)) {
       tasks.push({
         id: String(row.id),
         name: String(name || '(unnamed)'),

@@ -2212,8 +2212,11 @@ function parseProposalDate(str) {
   if (!str || !str.trim()) return null;
   const s = str.trim();
   // CSV dates exported without year (e.g. "3/30") — append current year
-  if (s && !/\d{4}/.test(s)) return parseDate(s + '/' + new Date().getFullYear());
-  return parseDate(s);
+  const raw = /\d{4}/.test(s) ? s : s + '/' + new Date().getFullYear();
+  const d = parseDate(raw);
+  // Normalize to noon to avoid DST boundary issues causing off-by-one day errors
+  if (d) d.setHours(12, 0, 0, 0);
+  return d;
 }
 
 function parseProposalsCSV(text) {
@@ -2252,8 +2255,11 @@ function recalcProposalBounds() {
     }
   }
   if (!min) { min = new Date(); max = addMonths(new Date(), 1); }
-  S.tlStart = new Date(min.getTime() - 30 * 86400000);
-  S.tlEnd   = addMonths(new Date(), 12);
+  const startBase = new Date(min); startBase.setHours(12, 0, 0, 0);
+  S.tlStart = new Date(startBase.getTime() - 30 * 86400000);
+  S.tlStart.setHours(12, 0, 0, 0);
+  S.tlEnd = addMonths(new Date(), 12);
+  S.tlEnd.setHours(12, 0, 0, 0);
 }
 
 function renderProposals() {

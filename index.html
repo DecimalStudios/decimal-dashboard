@@ -554,6 +554,24 @@
     margin-bottom: 3px;
   }
   .notes-timeline { flex: 1; background: #fafbfd; border-bottom: 0; }
+  .notes-people {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+  .notes-person {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .notes-person-role {
+    font-size: 9.5px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-right: 4px;
+  }
 
   .milestone-diamond {
     position: absolute;
@@ -1144,6 +1162,8 @@ function parseSheetCSV(text) {
     if (!cols[0]) continue;
     const key = normaliseKey(cols[0]);
     out[key] = {
+      producer:     cols[1]  || '',
+      lead:         cols[2]  || '',
       status:       cols[6]  || '',
       deliveryRisk: cols[7]  || '',
       overburnRisk: cols[8]  || '',
@@ -1607,13 +1627,20 @@ function buildNotesRow(p, tw) {
     const found = Object.keys(S.healthData).find(k => k.includes(key) || key.includes(k));
     if (found) h = S.healthData[found];
   }
-  const notes = h && h.notes ? h.notes.trim() : '';
-  if (!notes) return '';
+  const notes    = h && h.notes    ? h.notes.trim()    : '';
+  const producer = h && h.producer ? h.producer.trim() : '';
+  const lead     = h && h.lead     ? h.lead.trim()     : '';
+  if (!notes && !producer && !lead) return '';
+
+  const peopleBits = [
+    producer ? `<span class="notes-person"><span class="notes-person-role">Producer</span> ${esc(producer)}</span>` : '',
+    lead     ? `<span class="notes-person"><span class="notes-person-role">Lead</span> ${esc(lead)}</span>`     : '',
+  ].filter(Boolean).join('');
 
   return `<div class="notes-row">
     <div class="notes-cell">
-      <div class="notes-label">Notes</div>
-      <div class="notes-text">${esc(notes)}</div>
+      ${peopleBits ? `<div class="notes-people">${peopleBits}</div>` : ''}
+      ${notes ? `<div class="notes-label">Notes</div><div class="notes-text">${esc(notes)}</div>` : ''}
     </div>
     <div class="notes-timeline" style="width:${tw}px"></div>
   </div>`;

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
   // Spreadsheet ID and optional range from query params
   const spreadsheetId = req.query.id;
-  const range = req.query.range || 'Sheet1';
+  let range = req.query.range;
 
   if (!spreadsheetId) {
     return res.status(400).json({ error: 'Missing ?id= parameter (spreadsheet ID).' });
@@ -72,6 +72,20 @@ export default async function handler(req, res) {
 
   try {
     const token = await getAccessToken(sa);
+
+    // If no range specified, fetch spreadsheet metadata to get the first sheet name
+    if (!range) {
+      const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+      const metaRes = await fetch(metaUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!metaRes.ok) {
+        const err = await metaRes.text();
+        return res.status(metaRes.status).json({ error: `Sheets metadata error: ${err}` });
+      }
+      const meta = await metaRes.json();
+      range = meta.sheets?.[0]?.properties?.title || 'Sheet1';
+    }
 
     const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
     const sheetsRes = await fetch(sheetsUrl, {

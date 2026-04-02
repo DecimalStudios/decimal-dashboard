@@ -2208,10 +2208,16 @@ async function fetchProposals() {
 
 function parseProposalDate(str) {
   if (!str || !str.trim()) return null;
-  const s = str.trim();
-  // CSV dates exported without year (e.g. "3/30") — append current year
-  const raw = /\d{4}/.test(s) ? s : s + '/' + new Date().getFullYear();
-  const d = parseDate(raw);
+  let s = str.trim();
+  // Handle M/D/YY two-digit year format (e.g. "4/10/26" -> "4/10/2026")
+  const twoDigit = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (twoDigit) {
+    const yr = parseInt(twoDigit[3], 10);
+    s = twoDigit[1] + '/' + twoDigit[2] + '/' + (yr < 70 ? 2000 + yr : 1900 + yr);
+  }
+  // Dates without any year (e.g. "3/30") - append current year
+  if (!/\d{4}/.test(s)) s = s + '/' + new Date().getFullYear();
+  const d = parseDate(s);
   // Normalize to noon to avoid DST boundary issues causing off-by-one day errors
   if (d) d.setHours(12, 0, 0, 0);
   return d;

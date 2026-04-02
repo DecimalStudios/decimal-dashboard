@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/ss/:path*", "destination": "/api/ss" },
+    { "source": "/api/gsheet", "destination": "/api/gsheet" },
     { "source": "/projects", "destination": "/index.html" },
     { "source": "/proposals", "destination": "/index.html" }
   ]

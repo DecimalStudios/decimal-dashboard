@@ -1050,8 +1050,10 @@ const SS_API = '/api/ss';
 const LS_TOKEN      = 'tvd_ss_token_v2';
 const LS_WORKSPACES        = 'tvd_workspace_ids';
 const DEFAULT_WORKSPACE_ID = '870327845709700';  // Decimal Studios
-const HEALTH_CSV_URL    = 'https://docs.google.com/spreadsheets/d/1zfqcjpJAkWksYg986O29TlBxMb5pYpdbsq8cUnWqB5g/gviz/tq?tqx=out:csv';
-const PROPOSALS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1yUcd-gfhK05Ay7G3Xk_RnAPNnwTpSq6MCU4y-ojYZVU/export?format=csv';
+const HEALTH_SHEET_ID    = '1zfqcjpJAkWksYg986O29TlBxMb5pYpdbsq8cUnWqB5g';
+const HEALTH_CSV_URL     = '/api/gsheet?id=' + HEALTH_SHEET_ID;
+const PROPOSALS_SHEET_ID = '1SRDNCep1_gIubRS79FlRC4V7e0hMk2hagDQWqQ4LMjw';
+const PROPOSALS_CSV_URL  = '/api/gsheet?id=' + PROPOSALS_SHEET_ID;
 
 const PROJECT_COLORS = [
   '#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b',

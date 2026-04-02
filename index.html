@@ -616,6 +616,11 @@
     background: white;
     flex-shrink: 0;
   }
+  .prop-owner {
+    font-weight: 400;
+    font-size: 11px;
+    color: #9ca3af;
+  }
   .prop-timeline {
     position: relative;
     height: var(--row);
@@ -2332,7 +2337,7 @@ function buildProposalRow(prop, tw) {
   }
   return `<div class="proposal-row">
     <div class="prop-name-cell">
-      <span title="${esc(prop.client)}">${esc(prop.client)}</span>
+      <span title="${esc(prop.client)}">${esc(prop.client)}</span>${prop.owner ? `<span class="prop-owner">${esc(prop.owner)}</span>` : ''}
     </div>
     <div class="prop-timeline" style="width:${tw}px">${diamonds}</div>
   </div>`;

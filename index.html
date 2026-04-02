@@ -916,10 +916,6 @@
     <div class="stat-num" id="pstat-due-week">—</div>
     <div class="stat-lbl">Due This Week</div>
   </div>
-  <div class="stat-item" data-filter-p="checkin-week">
-    <div class="stat-num" id="pstat-checkin-week">—</div>
-    <div class="stat-lbl">Check-ins This Week</div>
-  </div>
 </div>
 
 <!-- BODY -->
@@ -2221,22 +2217,49 @@ function parseProposalDate(str) {
   return d;
 }
 
+function parseCSVRow(line) {
+  const cols = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+
 function parseProposalsCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
+  // Find column indices from header row
+  const header = parseCSVRow(lines[0]);
+  const iClient = header.findIndex(h => /client/i.test(h));
+  const iStatus = header.findIndex(h => /status/i.test(h));
+  const iDue = header.findIndex(h => /proposal\s*due/i.test(h));
+  const iNeed = header.findIndex(h => /need/i.test(h));
+  const iOwner = header.findIndex(h => /owner/i.test(h));
+  const iType = header.findIndex(h => /^type$/i.test(h));
+
   const proposals = [];
   for (let i = 1; i < lines.length; i++) {
-    // Simple CSV split (handles basic quoting)
-    const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-    if (!cols[0]) continue;
-    const client = cols[0];
-    const dueDate = parseProposalDate(cols[1]);
-    const checkIns = [];
-    for (let j = 2; j < cols.length; j++) {
-      const d = parseProposalDate(cols[j]);
-      if (d) checkIns.push(d);
-    }
-    proposals.push({ client, dueDate, checkIns });
+    const cols = parseCSVRow(lines[i]);
+    const client = cols[iClient >= 0 ? iClient : 0] || '';
+    if (!client) continue;
+    const status = cols[iStatus >= 0 ? iStatus : 8] || '';
+    // Skip rows with "00 On Hold" status
+    if (/on\s*hold/i.test(status)) continue;
+    const dueDate = parseProposalDate(cols[iDue >= 0 ? iDue : 9]);
+    const need = cols[iNeed >= 0 ? iNeed : 2] || '';
+    const owner = cols[iOwner >= 0 ? iOwner : 7] || '';
+    const type = cols[iType >= 0 ? iType : 6] || '';
+    proposals.push({ client, dueDate, checkIns: [], status, need, owner, type });
   }
   proposals.sort((a, b) => {
     if (!a.dueDate && !b.dueDate) return 0;
@@ -2250,7 +2273,7 @@ function parseProposalsCSV(text) {
 function recalcProposalBounds() {
   let min = null, max = null;
   for (const p of S.proposals) {
-    const dates = [p.dueDate, ...p.checkIns].filter(Boolean);
+    const dates = [p.dueDate].filter(Boolean);
     for (const d of dates) {
       if (!min || d < min) min = d;
       if (!max || d > max) max = d;
@@ -2301,14 +2324,6 @@ function buildProposalRow(prop, tw) {
       diamonds += `<span class="diamond-label diamond-label-due" style="left:${x}px">${label}</span>`;
     }
   }
-  for (const d of prop.checkIns) {
-    const x = dateToX(d);
-    if (x >= -9 && x <= tw + 9) {
-      const label = fmtShort(d);
-      diamonds += `<div class="diamond-checkin" style="left:${x}px" data-tip="Check-in: ${label}"></div>`;
-      diamonds += `<span class="diamond-label diamond-label-checkin" style="left:${x}px">${label}</span>`;
-    }
-  }
   return `<div class="proposal-row">
     <div class="prop-name-cell">
       <span title="${esc(prop.client)}">${esc(prop.client)}</span>
@@ -2329,8 +2344,6 @@ function updateProposalStats() {
   const total         = ps.length;
   const overdue       = ps.filter(p => p.dueDate && p.dueDate < now).length;
   const dueThisWeek   = ps.filter(p => p.dueDate && p.dueDate >= now && p.dueDate < endOfWeek).length;
-  const checkinsThisWeek = ps.reduce((acc, p) => acc + p.checkIns.filter(d => d >= startOfWeek && d < endOfWeek).length, 0);
-
   const setP = (id, val, cls) => {
     const el = $(id); if (!el) return;
     el.textContent = total > 0 ? val : '—';
@@ -2339,7 +2352,6 @@ function updateProposalStats() {
   setP('pstat-total',        total,            '');
   setP('pstat-overdue',      overdue,          overdue > 0 ? 'is-red' : '');
   setP('pstat-due-week',     dueThisWeek,      dueThisWeek > 0 ? 'is-amber' : '');
-  setP('pstat-checkin-week', checkinsThisWeek, '');
 }
 
 function init() {

@@ -500,6 +500,33 @@
 
   .bar-fill { height: 100%; border-radius: 4px 0 0 4px; }
 
+  /* ── PHASE DIAMONDS on collapsed project bar ────────────── */
+  .phase-diamond {
+    position: absolute;
+    width: 9px; height: 9px;
+    top: 50%; transform: translateY(-50%) rotate(45deg);
+    border-radius: 1.5px;
+    z-index: 2;
+    cursor: default;
+    pointer-events: auto;
+  }
+  .phase-diamond-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%; transform: translateX(-50%) rotate(-45deg);
+    background: #1e293b;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .phase-diamond:hover .phase-diamond-tip { display: block; }
+
   /* ── TASK ROWS ─────────────────────────────────────────────── */
   .task-row {
     display: flex;
@@ -1061,6 +1088,39 @@ const PROJECT_COLORS = [
   '#ec4899','#f97316','#6366f1','#14b8a6','#a3e635',
 ];
 
+// Phase-type color mapping for milestone diamonds
+const PHASE_COLORS = {
+  launch:      '#22c55e', // green
+  development: '#3b82f6', // blue
+  dev:         '#3b82f6',
+  build:       '#3b82f6',
+  engineering: '#3b82f6',
+  design:      '#f59e0b', // orange
+  ux:          '#f59e0b',
+  ui:          '#f59e0b',
+  visual:      '#f59e0b',
+  creative:    '#f59e0b',
+  warranty:    '#22c55e', // green
+  qa:          '#8b5cf6', // purple
+  testing:     '#8b5cf6',
+  kickoff:     '#06b6d4', // cyan
+  'kick-off':  '#06b6d4',
+  discovery:   '#06b6d4',
+  research:    '#06b6d4',
+  strategy:    '#9ca3af', // grey
+  planning:    '#9ca3af',
+  content:     '#ec4899', // pink
+};
+const DEFAULT_PHASE_COLOR = '#9ca3af'; // grey for unmatched phases
+
+function phaseColor(phaseName) {
+  const lower = (phaseName || '').toLowerCase();
+  for (const [key, color] of Object.entries(PHASE_COLORS)) {
+    if (lower.includes(key)) return color;
+  }
+  return DEFAULT_PHASE_COLOR;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════
@@ -1578,6 +1638,7 @@ function buildProjectRow(p, tw) {
   const src   = p.source === 'omniplan' ? '<span class="tag tag-op">OP</span>' : '';
   const arrow = `<span class="expand-icon ${p.expanded ? 'open' : ''}">▶</span>`;
   const pct   = '';
+  const barColor = '#d4d4d4'; // neutral grey for all project bars
 
   let bar = '';
   if (p.startDate && p.endDate) {
@@ -1586,9 +1647,20 @@ function buildProjectRow(p, tw) {
     const w  = Math.max(4, ex - x);
     const fw = Math.round(p.progress * 100);
     bar = `<div class="bar-bg" data-tip="${esc(p.id)}"
-      style="left:${x}px;width:${w}px;background:${p.color}20;border:1.5px solid ${p.color}60">
-      <div class="bar-fill" style="width:${fw}%;background:${p.color}cc"></div>
+      style="left:${x}px;width:${w}px;background:${barColor}30;border:1.5px solid ${barColor}90">
+      <div class="bar-fill" style="width:${fw}%;background:${barColor}"></div>
     </div>`;
+
+    // Phase milestone diamonds at start of each phase
+    if (p.tasks && p.tasks.length > 0) {
+      for (const t of p.tasks) {
+        if (!t.startDate) continue;
+        const dx = dateToX(t.startDate);
+        if (dx < -6 || dx > tw + 6) continue;
+        const pc = phaseColor(t.name);
+        bar += `<div class="phase-diamond" style="left:${dx}px;background:${pc}"><span class="phase-diamond-tip">${esc(t.name)}</span></div>`;
+      }
+    }
   } else if (!p.loaded) {
     bar = `<div style="position:absolute;top:50%;transform:translateY(-50%);left:8px;right:8px;height:6px;border-radius:3px;" class="skeleton"></div>`;
   }
@@ -1596,7 +1668,6 @@ function buildProjectRow(p, tw) {
   return `<div class="project-row ${p.expanded ? 'expanded' : ''}">
     <div class="row-name-cell" data-toggle="${esc(p.id)}">
       ${arrow}
-      <div class="source-dot" style="background:${p.color}"></div>
       ${src}
       <span class="row-name" title="${esc(p.name)}">${esc(p.name)}</span>
       ${pct}
@@ -1608,18 +1679,19 @@ function buildProjectRow(p, tw) {
 
 function buildTaskRow(t, color, tw) {
   const indent = (t.indent || 0) * 14 + 28;
+  const pc = phaseColor(t.name);
   let bar = '';
 
   if (t.isMilestone && t.startDate) {
     const x = dateToX(t.startDate);
-    bar = `<div class="milestone-diamond" style="left:${x}px;background:${color}"></div>`;
+    bar = `<div class="milestone-diamond" style="left:${x}px;background:${pc}"></div>`;
   } else if (t.startDate && t.endDate) {
     const x  = Math.max(0, dateToX(t.startDate));
     const ex = Math.min(tw, dateToX(t.endDate));
     const w  = Math.max(3, ex - x);
     const fw = Math.round(t.progress * 100);
-    bar = `<div class="task-bar" style="left:${x}px;width:${w}px;background:${color}40">
-      <div class="task-bar-fill" style="width:${fw}%;background:${color}99"></div>
+    bar = `<div class="task-bar" style="left:${x}px;width:${w}px;background:${pc}25">
+      <div class="task-bar-fill" style="width:${fw}%;background:${pc}80"></div>
     </div>`;
   }
 

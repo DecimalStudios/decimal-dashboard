@@ -1368,6 +1368,10 @@ function populatePhaseDropdown() {
         S.phaseFilter = null;
       } else {
         S.phaseFilter = phase;
+        // Auto-expand matching projects
+        for (const p of S.projects) {
+          if (projectMatchesPhase(p, phase)) p.expanded = true;
+        }
       }
       updatePhaseFilterUI();
       dd.classList.remove('open');

@@ -127,6 +127,81 @@
   .view-btn:hover { color: var(--text); }
   .view-btn.active { color: var(--accent); background: var(--accent-dim); }
 
+  /* ── PHASE FILTER DROPDOWN ────────────────────────────────── */
+  .phase-filter {
+    position: relative;
+  }
+  .phase-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .phase-filter-btn:hover { color: var(--text); border-color: var(--accent); }
+  .phase-filter-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  .phase-filter-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .phase-filter-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    margin-left: 2px;
+  }
+  .phase-filter-clear:hover { background: #0062c4; }
+  .phase-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 200;
+    min-width: 220px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .phase-dropdown.open { display: block; }
+  .phase-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .phase-dropdown-item:hover { background: var(--s2); }
+  .phase-dropdown-item.selected { color: var(--accent); font-weight: 600; }
+  .phase-dropdown-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .phase-dropdown-count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
   .hdr-btn {
     display: flex;
     align-items: center;
@@ -889,6 +964,14 @@
     <button class="zoom-btn" data-zoom="week">Week</button>
   </div>
 
+  <div class="phase-filter" id="phase-filter">
+    <button class="phase-filter-btn" id="phase-filter-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+      <span id="phase-filter-label">Phase</span>
+    </button>
+    <div class="phase-dropdown" id="phase-dropdown"></div>
+  </div>
+
   <button class="hdr-btn" id="btn-collapse-all" title="Collapse all projects">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 16l-8-8-8 8"/></svg>
     Collapse
@@ -1152,6 +1235,7 @@ const S = {
   totalToLoad: 0,
   healthData: {},  // keyed by normalised project name
   activeFilter: null,
+  phaseFilter: null,
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1232,6 +1316,85 @@ function projectMatchesFilter(p, filter) {
     });
   }
   return true;
+}
+
+function projectMatchesPhase(p, phaseName) {
+  if (!phaseName || !p.tasks) return true;
+  const now = new Date();
+  return p.tasks.some(t => {
+    if (!t.name) return false;
+    const nameMatch = t.name.toLowerCase().includes(phaseName.toLowerCase());
+    if (!nameMatch) return false;
+    // Phase is "current" if today is between start and end
+    if (t.startDate && t.endDate) return t.startDate <= now && now <= t.endDate;
+    // If only start, consider it current if started
+    if (t.startDate) return t.startDate <= now;
+    return true;
+  });
+}
+
+function collectPhases() {
+  const now = new Date();
+  const phaseMap = {};
+  for (const p of S.projects) {
+    if (!p.tasks) continue;
+    for (const t of p.tasks) {
+      if (!t.name || !t.startDate || !t.endDate) continue;
+      const isCurrent = t.startDate <= now && now <= t.endDate;
+      if (!isCurrent) continue;
+      const name = t.name;
+      if (!phaseMap[name]) phaseMap[name] = { count: 0, color: phaseColor(name) };
+      phaseMap[name].count++;
+    }
+  }
+  return Object.entries(phaseMap).sort((a, b) => b[1].count - a[1].count);
+}
+
+function populatePhaseDropdown() {
+  const dd = $('phase-dropdown');
+  const phases = collectPhases();
+  dd.innerHTML = phases.map(([name, info]) =>
+    `<div class="phase-dropdown-item${S.phaseFilter === name ? ' selected' : ''}" data-phase="${esc(name)}">
+      <span class="phase-dropdown-dot" style="background:${info.color}"></span>
+      ${esc(name)}
+      <span class="phase-dropdown-count">${info.count}</span>
+    </div>`
+  ).join('');
+
+  dd.querySelectorAll('.phase-dropdown-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const phase = el.dataset.phase;
+      if (S.phaseFilter === phase) {
+        S.phaseFilter = null;
+      } else {
+        S.phaseFilter = phase;
+      }
+      updatePhaseFilterUI();
+      dd.classList.remove('open');
+      render();
+    });
+  });
+}
+
+function updatePhaseFilterUI() {
+  const btn = $('phase-filter-btn');
+  const label = $('phase-filter-label');
+  if (S.phaseFilter) {
+    btn.classList.add('active');
+    label.innerHTML = esc(S.phaseFilter) + ' <span class="phase-filter-clear" id="phase-clear">×</span>';
+    const clear = $('phase-clear');
+    if (clear) {
+      clear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        S.phaseFilter = null;
+        updatePhaseFilterUI();
+        render();
+      });
+    }
+  } else {
+    btn.classList.remove('active');
+    label.textContent = 'Phase';
+  }
 }
 
 function parseSheetCSV(text) {
@@ -1567,6 +1730,7 @@ function render() {
   // Sort alphabetically, then apply active filter if set
   let sorted = [...S.projects].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   if (S.activeFilter) sorted = sorted.filter(p => projectMatchesFilter(p, S.activeFilter));
+  if (S.phaseFilter) sorted = sorted.filter(p => projectMatchesPhase(p, S.phaseFilter));
 
   let html = buildScale(tw);
   for (const p of sorted) {
@@ -2548,6 +2712,19 @@ function init() {
   dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop',      e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+
+  // Phase filter dropdown
+  $('phase-filter-btn').addEventListener('click', () => {
+    const dd = $('phase-dropdown');
+    const isOpen = dd.classList.contains('open');
+    dd.classList.toggle('open');
+    if (!isOpen) populatePhaseDropdown();
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#phase-filter')) {
+      $('phase-dropdown').classList.remove('open');
+    }
+  });
 
   // Keyboard
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });

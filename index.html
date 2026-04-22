@@ -1175,6 +1175,7 @@ const SS_API = '/api/ss';
 const LS_TOKEN      = 'tvd_ss_token_v2';
 const LS_WORKSPACES        = 'tvd_workspace_ids';
 const DEFAULT_WORKSPACE_ID = '870327845709700';  // Decimal Studios
+const EXCLUDED_SHEETS = ['template: web'];
 const HEALTH_SHEET_ID    = '1zfqcjpJAkWksYg986O29TlBxMb5pYpdbsq8cUnWqB5g';
 const HEALTH_CSV_URL     = '/api/gsheet?id=' + HEALTH_SHEET_ID;
 const PROPOSALS_SHEET_ID = '1SRDNCep1_gIubRS79FlRC4V7e0hMk2hagDQWqQ4LMjw';
@@ -2167,6 +2168,7 @@ async function autoLoadSavedWorkspaces() {
     try {
       const ws = await ssGet(`/workspaces/${wsid}`);
       for (const sheet of (ws.sheets || [])) {
+        if (EXCLUDED_SHEETS.includes(sheet.name.toLowerCase())) continue;
         S.projects.push({
           id: sheet.id, name: sheet.name,
           source: 'smartsheet', color: nextColor(),
@@ -2206,6 +2208,7 @@ async function loadSelectedWorkspaces() {
       const ws = await ssGet(`/workspaces/${cb.dataset.wsid}`);
       // Only top-level sheets — skip anything inside subfolders (Archive, etc.)
       for (const sheet of (ws.sheets || [])) {
+        if (EXCLUDED_SHEETS.includes(sheet.name.toLowerCase())) continue;
         S.projects.push({
           id: sheet.id, name: sheet.name,
           source: 'smartsheet', color: nextColor(),

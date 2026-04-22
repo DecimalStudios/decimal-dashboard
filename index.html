@@ -554,9 +554,26 @@
   .task-bar {
     position: absolute;
     height: 10px; top: 50%; transform: translateY(-50%);
-    border-radius: 2px; overflow: hidden; min-width: 3px;
+    border-radius: 2px; overflow: visible; min-width: 3px;
+    cursor: default;
   }
-  .task-bar-fill { height: 100%; }
+  .task-bar-fill { height: 100%; border-radius: 2px; }
+  .task-bar-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%; transform: translateX(-50%);
+    background: #1e293b;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .task-bar:hover .task-bar-tip { display: block; }
 
   /* ── NOTES ROW ──────────────────────────────────────────────── */
   .notes-row {
@@ -1692,6 +1709,7 @@ function buildTaskRow(t, color, tw) {
     const fw = Math.round(t.progress * 100);
     bar = `<div class="task-bar" style="left:${x}px;width:${w}px;background:${pc}25">
       <div class="task-bar-fill" style="width:${fw}%;background:${pc}80"></div>
+      <span class="task-bar-tip">${esc(t.name)}</span>
     </div>`;
   }
 

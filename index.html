@@ -2606,26 +2606,83 @@ async function fetchProposals() {
 // RFP VIEW
 // ═══════════════════════════════════════════════════════════════
 
+const RFP_QUERIES = [
+  'website redesign', 'brand identity', 'web design',
+  'web development services', 'UX design', 'CMS development',
+  'creative services', 'digital agency',
+];
+
+const RFP_HIGH_SIGNALS = ['website redesign','web design','brand identity','branding','ux design','ui design',
+  'user experience','digital presence','cms','wordpress','drupal','creative agency','creative services',
+  'graphic design','visual design','digital strategy','web development','front-end','frontend',
+  'responsive design','mobile design','design system','style guide','content management',
+  'digital marketing','communications design','annual report','publication design'];
+
+const RFP_LOW_SIGNALS = ['infrastructure','network security','penetration testing','facilities',
+  'construction','hvac','plumbing','electrical','janitorial','maintenance',
+  'military','weapons','ammunition','classified','top secret','clearance required',
+  'hardware','server','data center','cabling','roofing','paving',
+  'medical equipment','laboratory','vehicle','fleet management'];
+
+function scoreRFP(listing) {
+  const text = `${listing.title} ${listing.description}`.toLowerCase();
+  let score = 5;
+  const highHits = [], lowHits = [];
+  for (const s of RFP_HIGH_SIGNALS) { if (text.includes(s)) { score += 1.2; highHits.push(s); } }
+  for (const s of RFP_LOW_SIGNALS) { if (text.includes(s)) { score -= 1.5; lowHits.push(s); } }
+  score = Math.max(1, Math.min(10, Math.round(score)));
+  let rationale = '';
+  if (highHits.length) rationale = `Matches Decimal services: ${highHits.slice(0,3).join(', ')}.`;
+  else if (lowHits.length) rationale = `Outside Decimal scope: ${lowHits.slice(0,2).join(', ')}.`;
+  else rationale = 'Limited information to assess fit.';
+  return { score, rationale };
+}
+
 async function fetchRFPs(forceRefresh) {
   $('rfp-loading').style.display = '';
   $('rfp-table').style.display = 'none';
   $('rfp-empty').style.display = 'none';
 
-  try {
-    const url = '/api/rfps' + (forceRefresh ? '?refresh=1' : '');
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    S.rfps = data.listings || [];
-    S.rfpsLastUpdated = data.lastUpdated || null;
-    S.rfpsDemo = data.demo || false;
-    S.rfpsScoring = data.scoring || 'keyword';
-    S.rfpsLoaded = true;
-  } catch(e) {
-    console.error('Failed to load RFPs:', e);
-    S.rfps = [];
-    S.rfpsLoaded = true;
+  const seen = new Set();
+  const allResults = [];
+
+  for (const q of RFP_QUERIES) {
+    try {
+      const url = `https://sam.gov/api/prod/opportunities/v1/search?index=opp&q=${encodeURIComponent(q)}&sort=-modifiedDate&size=25&mode=search&responseStatus=active`;
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const hits = data?._embedded?.results || [];
+      for (const o of hits) {
+        const src = o._source || o;
+        const id = src.noticeId || o._id || '';
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        const title = src.title || '';
+        const desc = src.description || '';
+        const org = src.fullParentPathName || src.departmentName || '';
+        const deadline = src.responseDeadLine || src.archiveDate || '';
+        const postedDate = src.postedDate || '';
+        const type = src.type || src.baseType || '';
+        const naics = src.naicsCode || '';
+        let location = '';
+        if (src.officeAddress) location = [src.officeAddress.city, src.officeAddress.state].filter(Boolean).join(', ');
+        else if (src.placeOfPerformance?.state?.name) location = src.placeOfPerformance.state.name;
+        const link = src.uiLink || `https://sam.gov/opp/${id}/view`;
+        const { score, rationale } = scoreRFP({ title, description: desc });
+        allResults.push({ id, title, description: desc.slice(0,500), organization: org, deadline, location, type, naics, link, postedDate, score, rationale });
+      }
+    } catch(e) {
+      console.error(`SAM search failed for "${q}":`, e.message);
+    }
   }
+
+  allResults.sort((a, b) => b.score - a.score);
+  S.rfps = allResults;
+  S.rfpsLastUpdated = new Date().toISOString();
+  S.rfpsDemo = false;
+  S.rfpsScoring = 'keyword';
+  S.rfpsLoaded = true;
   renderRFPs();
 }
 

@@ -934,6 +934,83 @@
     display: none;
   }
   .cors-warning.show { display: block; }
+
+  /* ── RFP VIEW ──────────────────────────────────────────────── */
+  .rfp-container { padding: 0 24px 24px; display: none; }
+  .rfp-container.active { display: block; }
+  .rfp-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 0; flex-wrap: wrap;
+  }
+  .rfp-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
+  .rfp-meta { font-size: 11px; color: var(--muted); }
+  .rfp-filters {
+    display: flex; gap: 8px; margin-left: auto; align-items: center;
+  }
+  .rfp-filter-select {
+    padding: 5px 10px; border-radius: 6px;
+    border: 1px solid var(--border); background: white;
+    font-size: 12px; color: var(--text); cursor: pointer;
+  }
+  .rfp-refresh {
+    padding: 5px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: white;
+    font-size: 12px; color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .rfp-refresh:hover { border-color: var(--accent); color: var(--text); }
+  .rfp-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  .rfp-table th {
+    text-align: left; padding: 8px 12px;
+    font-size: 11px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .rfp-table th:hover { color: var(--text); }
+  .rfp-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+  }
+  .rfp-table tr:hover td { background: #fafbfd; }
+  .rfp-title-link {
+    color: var(--text); text-decoration: none;
+    font-weight: 500;
+  }
+  .rfp-title-link:hover { color: var(--accent); text-decoration: underline; }
+  .rfp-org { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rfp-rationale { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 3px; }
+  .rfp-score {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px;
+    font-weight: 700; font-size: 13px; color: white;
+  }
+  .rfp-score-high { background: #22c55e; }
+  .rfp-score-mid { background: #f59e0b; }
+  .rfp-score-low { background: #9ca3af; }
+  .rfp-deadline { white-space: nowrap; font-size: 12px; }
+  .rfp-deadline.soon { color: #ef4444; font-weight: 600; }
+  .rfp-location { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .rfp-type-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 3px;
+    background: var(--s2); color: var(--muted); white-space: nowrap;
+  }
+  .rfp-empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted); font-size: 14px;
+  }
+  .rfp-loading {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted); font-size: 14px;
+  }
+  .rfp-count { font-size: 12px; color: var(--muted); }
+
   .progress-bar-outer {
     height: 3px; background: var(--s2);
     border-radius: 2px; overflow: hidden; margin-top: 8px;
@@ -955,6 +1032,7 @@
   <div class="view-toggle">
     <button class="view-btn active" data-view="projects">Projects</button>
     <button class="view-btn" data-view="proposals">Proposals</button>
+    <button class="view-btn" data-view="rfps">RFPs</button>
   </div>
 
   <div class="zoom-bar">
@@ -1142,6 +1220,49 @@
     <div class="gantt-inner" id="gantt-inner" style="display: none;"></div>
 
   </div>
+
+  <!-- RFP View -->
+  <div class="rfp-container" id="rfp-container">
+    <div class="rfp-header">
+      <h2>RFP Monitor</h2>
+      <span class="rfp-count" id="rfp-count"></span>
+      <span class="rfp-meta" id="rfp-meta"></span>
+      <div class="rfp-filters">
+        <select class="rfp-filter-select" id="rfp-min-score">
+          <option value="5">Score 5+</option>
+          <option value="7">Score 7+</option>
+          <option value="3">Score 3+</option>
+          <option value="1">All scores</option>
+        </select>
+        <select class="rfp-filter-select" id="rfp-sort">
+          <option value="score">Sort by Score</option>
+          <option value="deadline">Sort by Deadline</option>
+          <option value="posted">Sort by Posted</option>
+        </select>
+        <button class="rfp-refresh" id="rfp-refresh">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+    <div id="rfp-body">
+      <div class="rfp-loading" id="rfp-loading">Loading RFPs from SAM.gov...</div>
+      <table class="rfp-table" id="rfp-table" style="display:none">
+        <thead>
+          <tr>
+            <th style="width:40px">Score</th>
+            <th>Title</th>
+            <th style="width:120px">Deadline</th>
+            <th style="width:140px">Location</th>
+            <th style="width:80px">Type</th>
+          </tr>
+        </thead>
+        <tbody id="rfp-tbody"></tbody>
+      </table>
+      <div class="rfp-empty" id="rfp-empty" style="display:none">No matching RFPs found.</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Status bar -->
@@ -1226,7 +1347,9 @@ const S = {
   token: localStorage.getItem(LS_TOKEN) || '',
   projects: [],
   proposals: [],
-  view: window.location.pathname.includes('proposals') ? 'proposals' : 'projects',
+  rfps: [],
+  rfpsLoaded: false,
+  view: window.location.pathname.includes('proposals') ? 'proposals' : (window.location.pathname.includes('rfps') ? 'rfps' : 'projects'),
   zoom: 'month',
   tlStart: null,
   tlEnd: null,
@@ -2438,8 +2561,16 @@ function initView() {
   document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   $('stats-strip').style.display              = v === 'projects'  ? '' : 'none';
   $('stats-strip-proposals').style.display    = v === 'proposals' ? '' : 'none';
+  $('gantt-scroll').style.display             = v === 'rfps' ? 'none' : '';
+  $('rfp-container').classList.toggle('active', v === 'rfps');
   ['btn-collapse-all','btn-expand-all'].forEach(id => { const el=$(id); if(el) el.style.display = v==='projects' ? '' : 'none'; });
-  document.title = v === 'proposals' ? 'Proposals — Decimal' : 'Projects — Decimal';
+  // Hide zoom/phase filter for RFPs view
+  const zoomBar = document.querySelector('.zoom-bar');
+  const phaseFilter = $('phase-filter');
+  if (zoomBar) zoomBar.style.display = v === 'rfps' ? 'none' : '';
+  if (phaseFilter) phaseFilter.style.display = v === 'rfps' ? 'none' : '';
+  const titles = { projects: 'Projects — Decimal', proposals: 'Proposals — Decimal', rfps: 'RFPs — Decimal' };
+  document.title = titles[v] || 'Decimal';
 }
 
 function switchView(v) {
@@ -2450,6 +2581,9 @@ function switchView(v) {
   if (v === 'proposals') {
     if (S.proposals.length === 0) fetchProposals();
     else renderProposals();
+  } else if (v === 'rfps') {
+    if (!S.rfpsLoaded) fetchRFPs();
+    else renderRFPs();
   } else {
     render();
   }
@@ -2466,6 +2600,104 @@ async function fetchProposals() {
     S.proposals = [];
   }
   renderProposals();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RFP VIEW
+// ═══════════════════════════════════════════════════════════════
+
+async function fetchRFPs(forceRefresh) {
+  $('rfp-loading').style.display = '';
+  $('rfp-table').style.display = 'none';
+  $('rfp-empty').style.display = 'none';
+
+  try {
+    const url = '/api/rfps' + (forceRefresh ? '?refresh=1' : '');
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    S.rfps = data.listings || [];
+    S.rfpsLastUpdated = data.lastUpdated || null;
+    S.rfpsLoaded = true;
+  } catch(e) {
+    console.error('Failed to load RFPs:', e);
+    S.rfps = [];
+    S.rfpsLoaded = true;
+  }
+  renderRFPs();
+}
+
+function renderRFPs() {
+  $('rfp-loading').style.display = 'none';
+
+  const minScore = parseInt($('rfp-min-score').value) || 5;
+  const sortBy = $('rfp-sort').value || 'score';
+
+  let filtered = S.rfps.filter(r => r.score >= minScore);
+
+  if (sortBy === 'deadline') {
+    filtered.sort((a, b) => {
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
+  } else if (sortBy === 'posted') {
+    filtered.sort((a, b) => {
+      if (!a.postedDate && !b.postedDate) return 0;
+      if (!a.postedDate) return 1;
+      if (!b.postedDate) return -1;
+      return new Date(b.postedDate) - new Date(a.postedDate);
+    });
+  } else {
+    filtered.sort((a, b) => b.score - a.score);
+  }
+
+  $('rfp-count').textContent = `${filtered.length} of ${S.rfps.length} listings`;
+
+  if (S.rfpsLastUpdated) {
+    const d = new Date(S.rfpsLastUpdated);
+    $('rfp-meta').textContent = `Last updated: ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
+  }
+
+  if (filtered.length === 0) {
+    $('rfp-table').style.display = 'none';
+    $('rfp-empty').style.display = '';
+    return;
+  }
+
+  $('rfp-table').style.display = '';
+  $('rfp-empty').style.display = 'none';
+
+  const now = new Date();
+  const tbody = $('rfp-tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const scoreClass = r.score >= 7 ? 'rfp-score-high' : r.score >= 5 ? 'rfp-score-mid' : 'rfp-score-low';
+    let deadlineStr = '';
+    let deadlineClass = 'rfp-deadline';
+    if (r.deadline) {
+      const dl = new Date(r.deadline);
+      if (!isNaN(dl)) {
+        deadlineStr = dl.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const daysLeft = Math.ceil((dl - now) / 86400000);
+        if (daysLeft <= 7 && daysLeft >= 0) deadlineClass += ' soon';
+      } else {
+        deadlineStr = r.deadline;
+      }
+    }
+    const typeLabel = (r.type || '').replace(/Special Notice/i, 'Notice').replace(/Combined Synopsis\/Solicitation/i, 'Combined').replace(/Solicitation/i, 'RFP').replace(/Sources Sought/i, 'Sources') || '';
+    return `<tr>
+      <td><span class="rfp-score ${scoreClass}">${r.score}</span></td>
+      <td>
+        <a class="rfp-title-link" href="${esc(r.link)}" target="_blank" rel="noopener">${esc(r.title)}</a>
+        <div class="rfp-org">${esc(r.organization)}</div>
+        ${r.rationale ? `<div class="rfp-rationale">${esc(r.rationale)}</div>` : ''}
+      </td>
+      <td class="${deadlineClass}">${deadlineStr}</td>
+      <td class="rfp-location">${esc(r.location)}</td>
+      <td><span class="rfp-type-tag">${esc(typeLabel)}</span></td>
+    </tr>`;
+  }).join('');
 }
 
 function parseProposalDate(str) {
@@ -2633,11 +2865,15 @@ function init() {
 
   // Handle browser back/forward
   window.addEventListener('popstate', () => {
-    S.view = window.location.pathname.includes('proposals') ? 'proposals' : 'projects';
+    const path = window.location.pathname;
+    S.view = path.includes('proposals') ? 'proposals' : (path.includes('rfps') ? 'rfps' : 'projects');
     initView();
     if (S.view === 'proposals') {
       if (S.proposals.length === 0) fetchProposals();
       else renderProposals();
+    } else if (S.view === 'rfps') {
+      if (!S.rfpsLoaded) fetchRFPs();
+      else renderRFPs();
     } else {
       render();
     }
@@ -2720,6 +2956,11 @@ function init() {
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop',      e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
 
+  // RFP view events
+  $('rfp-min-score').addEventListener('change', renderRFPs);
+  $('rfp-sort').addEventListener('change', renderRFPs);
+  $('rfp-refresh').addEventListener('click', () => fetchRFPs(true));
+
   // Phase filter dropdown
   $('phase-filter-btn').addEventListener('click', () => {
     const dd = $('phase-dropdown');
@@ -2757,6 +2998,8 @@ function init() {
 
   if (S.view === 'proposals') {
     fetchProposals();
+  } else if (S.view === 'rfps') {
+    fetchRFPs();
   } else {
     setStatus('', 'Ready — click Connect to load your Smartsheet projects');
     render();

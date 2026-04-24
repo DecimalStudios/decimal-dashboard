@@ -1,43 +1,110 @@
-// Vercel serverless function — SAM.gov RFP monitor with Claude scoring
-// Env vars: SAM_GOV_API_KEY, ANTHROPIC_API_KEY
+// Vercel serverless function — SAM.gov RFP monitor with optional Claude scoring
+// Uses SAM.gov's public search API (no key needed)
+// Optional env var: ANTHROPIC_API_KEY (for AI scoring, falls back to keyword scoring)
 
-const SAM_URL = 'https://api.sam.gov/prod/opportunities/v2/search';
-const NAICS = '541511,541430,541810,541512';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
-async function fetchSamOpportunities(apiKey) {
-  const now = new Date();
-  const from = new Date(now.getTime() - 30 * 86400000); // last 30 days
-  const fmt = d => `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+// Search queries relevant to a design/dev agency
+const SEARCH_QUERIES = [
+  'website redesign',
+  'brand identity',
+  'web design',
+  'web development services',
+  'digital agency',
+  'UX design',
+  'CMS development',
+  'creative services',
+];
 
-  const params = new URLSearchParams({
-    api_key: apiKey,
-    limit: '100',
-    offset: '0',
-    ptype: 'o,p,r,k',
-    naicsCode: NAICS,
-    postedFrom: fmt(from),
-    postedTo: fmt(now),
-  });
+async function fetchSamPublic() {
+  const allResults = [];
+  const seen = new Set();
 
-  const res = await fetch(`${SAM_URL}?${params}`);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`SAM.gov API error ${res.status}: ${err}`);
+  for (const q of SEARCH_QUERIES) {
+    try {
+      const url = `https://sam.gov/api/prod/opportunities/v1/search?api_key=null&index=opp&q=${encodeURIComponent(q)}&sort=-modifiedDate&size=25&mode=search&responseStatus=active`;
+      const r = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0',
+        },
+      });
+      if (!r.ok) continue;
+      const data = await r.json();
+      const hits = data?._embedded?.results || data?.opportunitiesData || [];
+
+      for (const o of hits) {
+        const id = o.noticeId || o._id || o.solicitationNumber || '';
+        if (seen.has(id)) continue;
+        seen.add(id);
+
+        const title = o.title || o._source?.title || '';
+        const desc = o.description || o._source?.description || '';
+        const org = o.fullParentPathName || o._source?.fullParentPathName || o.departmentName || o._source?.departmentName || '';
+        const deadline = o.responseDeadLine || o._source?.responseDeadLine || '';
+        const postedDate = o.postedDate || o._source?.postedDate || '';
+        const type = o.type || o._source?.type || o.baseType || o._source?.baseType || '';
+        const naics = o.naicsCode || o._source?.naicsCode || '';
+
+        let location = '';
+        const addr = o.officeAddress || o._source?.officeAddress;
+        if (addr) {
+          location = [addr.city, addr.state].filter(Boolean).join(', ');
+        } else if (o._source?.placeOfPerformance?.state?.name) {
+          location = o._source.placeOfPerformance.state.name;
+        }
+
+        const link = o.uiLink || `https://sam.gov/opp/${id}/view`;
+
+        allResults.push({ id, title, description: desc.slice(0, 500), organization: org, deadline, location, type, naics, link, postedDate });
+      }
+    } catch (e) {
+      console.error(`SAM search failed for "${q}":`, e.message);
+    }
   }
-  const data = await res.json();
-  return (data.opportunitiesData || []).map(o => ({
-    id: o.noticeId || o.solicitationNumber || '',
-    title: o.title || '',
-    description: (o.description || '').slice(0, 500),
-    organization: o.fullParentPathName || o.departmentName || '',
-    deadline: o.responseDeadLine || '',
-    location: o.officeAddress ? `${o.officeAddress.city || ''}, ${o.officeAddress.state || ''}`.replace(/^, |, $/g, '') : '',
-    type: o.type || o.baseType || '',
-    naics: o.naicsCode || '',
-    link: o.uiLink || `https://sam.gov/opp/${o.noticeId || ''}`,
-    postedDate: o.postedDate || '',
-  }));
+
+  return allResults;
+}
+
+// Keyword-based scoring fallback when Claude API isn't available
+function keywordScore(listing) {
+  const text = `${listing.title} ${listing.description}`.toLowerCase();
+
+  const highSignals = ['website redesign', 'web design', 'brand identity', 'branding', 'ux design', 'ui design',
+    'user experience', 'digital presence', 'cms', 'wordpress', 'drupal', 'creative agency', 'creative services',
+    'graphic design', 'visual design', 'digital strategy', 'web development', 'front-end', 'frontend',
+    'responsive design', 'mobile design', 'design system', 'style guide', 'content management',
+    'digital marketing', 'communications design', 'annual report design', 'publication design'];
+
+  const lowSignals = ['infrastructure', 'network security', 'penetration testing', 'facilities',
+    'construction', 'hvac', 'plumbing', 'electrical', 'janitorial', 'maintenance',
+    'military', 'weapons', 'ammunition', 'classified', 'top secret', 'clearance required',
+    'hardware', 'server', 'data center', 'cabling', 'roofing', 'paving',
+    'medical equipment', 'laboratory', 'vehicle', 'fleet management'];
+
+  let score = 5;
+  let rationale = '';
+  let highHits = [];
+  let lowHits = [];
+
+  for (const sig of highSignals) {
+    if (text.includes(sig)) { score += 1.2; highHits.push(sig); }
+  }
+  for (const sig of lowSignals) {
+    if (text.includes(sig)) { score -= 1.5; lowHits.push(sig); }
+  }
+
+  score = Math.max(1, Math.min(10, Math.round(score)));
+
+  if (highHits.length > 0) {
+    rationale = `Matches Decimal services: ${highHits.slice(0, 3).join(', ')}.`;
+  } else if (lowHits.length > 0) {
+    rationale = `Outside Decimal scope: ${lowHits.slice(0, 2).join(', ')}.`;
+  } else {
+    rationale = 'Limited information to assess fit.';
+  }
+
+  return { score, rationale };
 }
 
 async function scoreWithClaude(listings, apiKey) {
@@ -79,10 +146,8 @@ ${listingSummaries}`;
   const text = data.content?.[0]?.text || '[]';
 
   try {
-    // Extract JSON array from response
     const match = text.match(/\[[\s\S]*\]/);
-    const scores = match ? JSON.parse(match[0]) : [];
-    return scores;
+    return match ? JSON.parse(match[0]) : [];
   } catch (e) {
     console.error('Failed to parse Claude scores:', text);
     return [];
@@ -90,65 +155,60 @@ ${listingSummaries}`;
 }
 
 export default async function handler(req, res) {
-  const samKey = process.env.SAM_GOV_API_KEY;
   const claudeKey = process.env.ANTHROPIC_API_KEY;
 
-  // Return demo data if API keys aren't configured yet
-  if (!samKey || !claudeKey) {
-    const demo = {
-      listings: [
-        { id: 'DEMO-001', title: 'Website Redesign and Digital Strategy for National Arts Foundation', organization: 'National Endowment for the Arts', deadline: new Date(Date.now() + 12*86400000).toISOString(), location: 'Washington, DC', type: 'Solicitation', naics: '541511', link: 'https://sam.gov', postedDate: new Date(Date.now() - 3*86400000).toISOString(), score: 9, rationale: 'Direct website redesign with digital strategy — core Decimal service.' },
-        { id: 'DEMO-002', title: 'Brand Identity and Visual Design System for Regional Transit Authority', organization: 'Metropolitan Transportation Authority', deadline: new Date(Date.now() + 21*86400000).toISOString(), location: 'New York, NY', type: 'Combined Synopsis/Solicitation', naics: '541430', link: 'https://sam.gov', postedDate: new Date(Date.now() - 5*86400000).toISOString(), score: 8, rationale: 'Brand identity and design system work aligns well with Decimal capabilities.' },
-        { id: 'DEMO-003', title: 'CMS Migration and Web Development for Public Library System', organization: 'Chicago Public Library', deadline: new Date(Date.now() + 30*86400000).toISOString(), location: 'Chicago, IL', type: 'Solicitation', naics: '541511', link: 'https://sam.gov', postedDate: new Date(Date.now() - 2*86400000).toISOString(), score: 8, rationale: 'CMS migration and web development — strong technical fit.' },
-        { id: 'DEMO-004', title: 'Digital Experience Platform and UX Research for Healthcare Portal', organization: 'Dept. of Health and Human Services', deadline: new Date(Date.now() + 5*86400000).toISOString(), location: 'Bethesda, MD', type: 'Sources Sought', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 7*86400000).toISOString(), score: 7, rationale: 'UX research and digital platform design fits, though healthcare compliance adds complexity.' },
-        { id: 'DEMO-005', title: 'Creative Agency Services for Museum Exhibition Marketing', organization: 'Smithsonian Institution', deadline: new Date(Date.now() + 18*86400000).toISOString(), location: 'Washington, DC', type: 'Solicitation', naics: '541810', link: 'https://sam.gov', postedDate: new Date(Date.now() - 1*86400000).toISOString(), score: 7, rationale: 'Creative agency and marketing design — good cultural sector fit for Decimal.' },
-        { id: 'DEMO-006', title: 'Responsive Web Application for Environmental Data Dashboard', organization: 'Environmental Protection Agency', deadline: new Date(Date.now() + 25*86400000).toISOString(), location: 'Research Triangle Park, NC', type: 'Combined Synopsis/Solicitation', naics: '541511', link: 'https://sam.gov', postedDate: new Date(Date.now() - 4*86400000).toISOString(), score: 6, rationale: 'Web application development fits, but data-heavy dashboard may require specialized skills.' },
-        { id: 'DEMO-007', title: 'Communications Design and Annual Report for Non-Profit Foundation', organization: 'Corporation for National and Community Service', deadline: new Date(Date.now() + 14*86400000).toISOString(), location: 'Washington, DC', type: 'Solicitation', naics: '541430', link: 'https://sam.gov', postedDate: new Date(Date.now() - 6*86400000).toISOString(), score: 6, rationale: 'Communications design and print work — partial fit, less web-focused.' },
-        { id: 'DEMO-008', title: 'IT Infrastructure Modernization and Cloud Migration', organization: 'General Services Administration', deadline: new Date(Date.now() + 35*86400000).toISOString(), location: 'Arlington, VA', type: 'Solicitation', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 8*86400000).toISOString(), score: 3, rationale: 'IT infrastructure and cloud migration — outside Decimal core services.' },
-        { id: 'DEMO-009', title: 'Network Security Assessment and Penetration Testing', organization: 'Dept. of Defense', deadline: new Date(Date.now() + 40*86400000).toISOString(), location: 'Fort Meade, MD', type: 'Solicitation', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 10*86400000).toISOString(), score: 1, rationale: 'Security and penetration testing — not a Decimal service area.' },
-        { id: 'DEMO-010', title: 'Facilities Management and Building Maintenance Services', organization: 'Dept. of Veterans Affairs', deadline: new Date(Date.now() + 45*86400000).toISOString(), location: 'Multiple Locations', type: 'Solicitation', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 12*86400000).toISOString(), score: 1, rationale: 'Facilities management — completely outside design/dev scope.' },
-      ],
-      total: 10,
-      lastUpdated: new Date().toISOString(),
-      demo: true,
-    };
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(200).json(demo);
-  }
-
   try {
-    // Fetch opportunities from SAM.gov
-    const listings = await fetchSamOpportunities(samKey);
+    // Fetch from SAM.gov public search (no API key needed)
+    const listings = await fetchSamPublic();
 
-    // Score in batches of 25 to stay within token limits
-    const batchSize = 25;
-    const allScores = [];
-    for (let i = 0; i < listings.length; i += batchSize) {
-      const batch = listings.slice(i, i + batchSize);
-      const scores = await scoreWithClaude(batch, claudeKey);
-      // Map scores back with offset
-      for (const s of scores) {
-        allScores.push({ ...s, index: s.index + i });
-      }
+    if (listings.length === 0) {
+      // Return empty result, not an error
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).json({ listings: [], total: 0, lastUpdated: new Date().toISOString() });
     }
 
-    // Merge scores into listings
-    const scoreMap = {};
-    for (const s of allScores) scoreMap[s.index] = s;
+    let scored;
 
-    const scored = listings.map((l, i) => ({
-      ...l,
-      score: scoreMap[i]?.score ?? 0,
-      rationale: scoreMap[i]?.rationale ?? '',
-    }));
+    if (claudeKey) {
+      // Score with Claude in batches
+      const batchSize = 25;
+      const allScores = [];
+      for (let i = 0; i < listings.length; i += batchSize) {
+        const batch = listings.slice(i, i + batchSize);
+        try {
+          const scores = await scoreWithClaude(batch, claudeKey);
+          for (const s of scores) allScores.push({ ...s, index: s.index + i });
+        } catch (e) {
+          console.error('Claude scoring failed for batch, falling back to keywords:', e.message);
+          batch.forEach((l, j) => {
+            const { score, rationale } = keywordScore(l);
+            allScores.push({ index: i + j, score, rationale });
+          });
+        }
+      }
 
-    // Sort by score descending
+      const scoreMap = {};
+      for (const s of allScores) scoreMap[s.index] = s;
+      scored = listings.map((l, i) => ({
+        ...l,
+        score: scoreMap[i]?.score ?? 0,
+        rationale: scoreMap[i]?.rationale ?? '',
+      }));
+    } else {
+      // Keyword-based scoring fallback
+      scored = listings.map(l => {
+        const { score, rationale } = keywordScore(l);
+        return { ...l, score, rationale };
+      });
+    }
+
     scored.sort((a, b) => b.score - a.score);
 
     const result = {
       listings: scored,
       total: scored.length,
       lastUpdated: new Date().toISOString(),
+      scoring: claudeKey ? 'claude' : 'keyword',
     };
 
     // Cache for 6 hours

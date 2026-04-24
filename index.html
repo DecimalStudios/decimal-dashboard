@@ -2618,6 +2618,7 @@ async function fetchRFPs(forceRefresh) {
     const data = await r.json();
     S.rfps = data.listings || [];
     S.rfpsLastUpdated = data.lastUpdated || null;
+    S.rfpsDemo = data.demo || false;
     S.rfpsLoaded = true;
   } catch(e) {
     console.error('Failed to load RFPs:', e);
@@ -2657,7 +2658,8 @@ function renderRFPs() {
 
   if (S.rfpsLastUpdated) {
     const d = new Date(S.rfpsLastUpdated);
-    $('rfp-meta').textContent = `Last updated: ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
+    const prefix = S.rfpsDemo ? 'Demo data — ' : '';
+    $('rfp-meta').textContent = `${prefix}Last updated: ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
   }
 
   if (filtered.length === 0) {

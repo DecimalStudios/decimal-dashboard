@@ -93,8 +93,28 @@ export default async function handler(req, res) {
   const samKey = process.env.SAM_GOV_API_KEY;
   const claudeKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!samKey) return res.status(500).json({ error: 'SAM_GOV_API_KEY not set.' });
-  if (!claudeKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set.' });
+  // Return demo data if API keys aren't configured yet
+  if (!samKey || !claudeKey) {
+    const demo = {
+      listings: [
+        { id: 'DEMO-001', title: 'Website Redesign and Digital Strategy for National Arts Foundation', organization: 'National Endowment for the Arts', deadline: new Date(Date.now() + 12*86400000).toISOString(), location: 'Washington, DC', type: 'Solicitation', naics: '541511', link: 'https://sam.gov', postedDate: new Date(Date.now() - 3*86400000).toISOString(), score: 9, rationale: 'Direct website redesign with digital strategy — core Decimal service.' },
+        { id: 'DEMO-002', title: 'Brand Identity and Visual Design System for Regional Transit Authority', organization: 'Metropolitan Transportation Authority', deadline: new Date(Date.now() + 21*86400000).toISOString(), location: 'New York, NY', type: 'Combined Synopsis/Solicitation', naics: '541430', link: 'https://sam.gov', postedDate: new Date(Date.now() - 5*86400000).toISOString(), score: 8, rationale: 'Brand identity and design system work aligns well with Decimal capabilities.' },
+        { id: 'DEMO-003', title: 'CMS Migration and Web Development for Public Library System', organization: 'Chicago Public Library', deadline: new Date(Date.now() + 30*86400000).toISOString(), location: 'Chicago, IL', type: 'Solicitation', naics: '541511', link: 'https://sam.gov', postedDate: new Date(Date.now() - 2*86400000).toISOString(), score: 8, rationale: 'CMS migration and web development — strong technical fit.' },
+        { id: 'DEMO-004', title: 'Digital Experience Platform and UX Research for Healthcare Portal', organization: 'Dept. of Health and Human Services', deadline: new Date(Date.now() + 5*86400000).toISOString(), location: 'Bethesda, MD', type: 'Sources Sought', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 7*86400000).toISOString(), score: 7, rationale: 'UX research and digital platform design fits, though healthcare compliance adds complexity.' },
+        { id: 'DEMO-005', title: 'Creative Agency Services for Museum Exhibition Marketing', organization: 'Smithsonian Institution', deadline: new Date(Date.now() + 18*86400000).toISOString(), location: 'Washington, DC', type: 'Solicitation', naics: '541810', link: 'https://sam.gov', postedDate: new Date(Date.now() - 1*86400000).toISOString(), score: 7, rationale: 'Creative agency and marketing design — good cultural sector fit for Decimal.' },
+        { id: 'DEMO-006', title: 'Responsive Web Application for Environmental Data Dashboard', organization: 'Environmental Protection Agency', deadline: new Date(Date.now() + 25*86400000).toISOString(), location: 'Research Triangle Park, NC', type: 'Combined Synopsis/Solicitation', naics: '541511', link: 'https://sam.gov', postedDate: new Date(Date.now() - 4*86400000).toISOString(), score: 6, rationale: 'Web application development fits, but data-heavy dashboard may require specialized skills.' },
+        { id: 'DEMO-007', title: 'Communications Design and Annual Report for Non-Profit Foundation', organization: 'Corporation for National and Community Service', deadline: new Date(Date.now() + 14*86400000).toISOString(), location: 'Washington, DC', type: 'Solicitation', naics: '541430', link: 'https://sam.gov', postedDate: new Date(Date.now() - 6*86400000).toISOString(), score: 6, rationale: 'Communications design and print work — partial fit, less web-focused.' },
+        { id: 'DEMO-008', title: 'IT Infrastructure Modernization and Cloud Migration', organization: 'General Services Administration', deadline: new Date(Date.now() + 35*86400000).toISOString(), location: 'Arlington, VA', type: 'Solicitation', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 8*86400000).toISOString(), score: 3, rationale: 'IT infrastructure and cloud migration — outside Decimal core services.' },
+        { id: 'DEMO-009', title: 'Network Security Assessment and Penetration Testing', organization: 'Dept. of Defense', deadline: new Date(Date.now() + 40*86400000).toISOString(), location: 'Fort Meade, MD', type: 'Solicitation', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 10*86400000).toISOString(), score: 1, rationale: 'Security and penetration testing — not a Decimal service area.' },
+        { id: 'DEMO-010', title: 'Facilities Management and Building Maintenance Services', organization: 'Dept. of Veterans Affairs', deadline: new Date(Date.now() + 45*86400000).toISOString(), location: 'Multiple Locations', type: 'Solicitation', naics: '541512', link: 'https://sam.gov', postedDate: new Date(Date.now() - 12*86400000).toISOString(), score: 1, rationale: 'Facilities management — completely outside design/dev scope.' },
+      ],
+      total: 10,
+      lastUpdated: new Date().toISOString(),
+      demo: true,
+    };
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).json(demo);
+  }
 
   try {
     // Fetch opportunities from SAM.gov

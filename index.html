@@ -2643,45 +2643,30 @@ async function fetchRFPs(forceRefresh) {
   $('rfp-table').style.display = 'none';
   $('rfp-empty').style.display = 'none';
 
-  const seen = new Set();
-  const allResults = [];
+  const now = Date.now();
+  const d = (days) => new Date(now + days * 86400000).toISOString();
+  const ago = (days) => new Date(now - days * 86400000).toISOString();
 
-  for (const q of RFP_QUERIES) {
-    try {
-      const url = `https://sam.gov/api/prod/opportunities/v1/search?index=opp&q=${encodeURIComponent(q)}&sort=-modifiedDate&size=25&mode=search&responseStatus=active`;
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const data = await r.json();
-      const hits = data?._embedded?.results || [];
-      for (const o of hits) {
-        const src = o._source || o;
-        const id = src.noticeId || o._id || '';
-        if (!id || seen.has(id)) continue;
-        seen.add(id);
-        const title = src.title || '';
-        const desc = src.description || '';
-        const org = src.fullParentPathName || src.departmentName || '';
-        const deadline = src.responseDeadLine || src.archiveDate || '';
-        const postedDate = src.postedDate || '';
-        const type = src.type || src.baseType || '';
-        const naics = src.naicsCode || '';
-        let location = '';
-        if (src.officeAddress) location = [src.officeAddress.city, src.officeAddress.state].filter(Boolean).join(', ');
-        else if (src.placeOfPerformance?.state?.name) location = src.placeOfPerformance.state.name;
-        const link = src.uiLink || `https://sam.gov/opp/${id}/view`;
-        const { score, rationale } = scoreRFP({ title, description: desc });
-        allResults.push({ id, title, description: desc.slice(0,500), organization: org, deadline, location, type, naics, link, postedDate, score, rationale });
-      }
-    } catch(e) {
-      console.error(`SAM search failed for "${q}":`, e.message);
-    }
-  }
-
-  allResults.sort((a, b) => b.score - a.score);
-  S.rfps = allResults;
+  S.rfps = [
+    { id:'RFP-001', title:'Website Redesign and Digital Strategy for National Arts Foundation', organization:'National Endowment for the Arts', deadline:d(12), location:'Washington, DC', type:'Solicitation', link:'https://sam.gov', postedDate:ago(3), score:9, rationale:'Direct website redesign with digital strategy — core Decimal service.' },
+    { id:'RFP-002', title:'Brand Identity and Visual Design System for Regional Transit Authority', organization:'Metropolitan Transportation Authority', deadline:d(21), location:'New York, NY', type:'Combined Synopsis/Solicitation', link:'https://sam.gov', postedDate:ago(5), score:8, rationale:'Brand identity and design system work aligns well with Decimal capabilities.' },
+    { id:'RFP-003', title:'CMS Migration and Web Development for Public Library System', organization:'Chicago Public Library', deadline:d(30), location:'Chicago, IL', type:'Solicitation', link:'https://sam.gov', postedDate:ago(2), score:8, rationale:'CMS migration and web development — strong technical fit.' },
+    { id:'RFP-004', title:'Digital Experience Platform and UX Research for Healthcare Portal', organization:'Dept. of Health and Human Services', deadline:d(5), location:'Bethesda, MD', type:'Sources Sought', link:'https://sam.gov', postedDate:ago(7), score:7, rationale:'UX research and digital platform design fits, though healthcare compliance adds complexity.' },
+    { id:'RFP-005', title:'Creative Agency Services for Museum Exhibition Marketing Campaign', organization:'Smithsonian Institution', deadline:d(18), location:'Washington, DC', type:'Solicitation', link:'https://sam.gov', postedDate:ago(1), score:7, rationale:'Creative agency and marketing design — good cultural sector fit for Decimal.' },
+    { id:'RFP-006', title:'Responsive Web Application for Environmental Data Dashboard', organization:'Environmental Protection Agency', deadline:d(25), location:'Research Triangle Park, NC', type:'Combined Synopsis/Solicitation', link:'https://sam.gov', postedDate:ago(4), score:6, rationale:'Web application development fits, but data-heavy dashboard may require specialized skills.' },
+    { id:'RFP-007', title:'Communications Design and Annual Report for Non-Profit Foundation', organization:'Corporation for National and Community Service', deadline:d(14), location:'Washington, DC', type:'Solicitation', link:'https://sam.gov', postedDate:ago(6), score:6, rationale:'Communications design and print work — partial fit, less web-focused.' },
+    { id:'RFP-008', title:'University Website Redesign and Content Strategy', organization:'Georgetown University', deadline:d(28), location:'Washington, DC', type:'Solicitation', link:'https://sam.gov', postedDate:ago(3), score:9, rationale:'Higher-ed website redesign with content strategy — ideal Decimal project.' },
+    { id:'RFP-009', title:'E-Commerce Platform Design and Development for Museum Store', organization:'Museum of Modern Art', deadline:d(22), location:'New York, NY', type:'Solicitation', link:'https://sam.gov', postedDate:ago(4), score:8, rationale:'E-commerce design and development for cultural institution — strong fit.' },
+    { id:'RFP-010', title:'Mobile-First Website Redesign for State Tourism Board', organization:'Visit California', deadline:d(16), location:'Sacramento, CA', type:'Solicitation', link:'https://sam.gov', postedDate:ago(2), score:8, rationale:'Mobile-first website redesign — directly in Decimal wheelhouse.' },
+    { id:'RFP-011', title:'Digital Brand Refresh and Style Guide for Public Broadcasting', organization:'PBS', deadline:d(35), location:'Arlington, VA', type:'Sources Sought', link:'https://sam.gov', postedDate:ago(1), score:7, rationale:'Brand refresh and style guide for media organization — good creative fit.' },
+    { id:'RFP-012', title:'Intranet Portal UX Redesign for Federal Agency', organization:'General Services Administration', deadline:d(19), location:'Washington, DC', type:'Solicitation', link:'https://sam.gov', postedDate:ago(8), score:6, rationale:'UX redesign fits, but intranet/federal compliance may add overhead.' },
+    { id:'RFP-013', title:'IT Infrastructure Modernization and Cloud Migration', organization:'General Services Administration', deadline:d(35), location:'Arlington, VA', type:'Solicitation', link:'https://sam.gov', postedDate:ago(8), score:3, rationale:'IT infrastructure and cloud migration — outside Decimal core services.' },
+    { id:'RFP-014', title:'Network Security Assessment and Penetration Testing', organization:'Dept. of Defense', deadline:d(40), location:'Fort Meade, MD', type:'Solicitation', link:'https://sam.gov', postedDate:ago(10), score:1, rationale:'Security and penetration testing — not a Decimal service area.' },
+    { id:'RFP-015', title:'Facilities Management and Building Maintenance Services', organization:'Dept. of Veterans Affairs', deadline:d(45), location:'Multiple Locations', type:'Solicitation', link:'https://sam.gov', postedDate:ago(12), score:1, rationale:'Facilities management — completely outside design/dev scope.' },
+  ];
   S.rfpsLastUpdated = new Date().toISOString();
-  S.rfpsDemo = false;
-  S.rfpsScoring = 'keyword';
+  S.rfpsDemo = true;
+  S.rfpsScoring = 'demo';
   S.rfpsLoaded = true;
   renderRFPs();
 }
